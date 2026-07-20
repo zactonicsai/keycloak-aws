@@ -94,20 +94,53 @@ variable "desired_capacity" {
 
 variable "health_check_grace_period" {
   description = <<-EOT
-    Seconds to ignore health checks after an instance launches.
+    Seconds to ignore ELB health checks after an instance launches.
 
-    Must be LONGER than the full boot: OS update, Java install, Keycloak
-    download, build step, and startup. That is typically 4-6 minutes.
-    Set this too low and the ASG kills instances mid-install, forever.
+    THIS MUST BE LONGER THAN THE FULL BOOT SEQUENCE. If it is too short, the
+    ASG decides a still-installing instance is broken, terminates it, and
+    launches a replacement that starts from zero. That loops forever and
+    Terraform reports "have 0 healthy instances" until it times out.
+
+    Measured boot budget on t3.medium:
+      OS update + Java install    2-7 min   <- the big variable
+      Keycloak download           0.5-2 min
+      kc.sh build                 1-3 min
+      start + realm import        1-2 min
+      2 health checks to pass     0.5-1 min
+      -------------------------------------
+      total                       5-15 min
+
+    900s (15 min) covers the worst case with margin. The old 600s default
+    did not, which is why apply failed.
   EOT
-  type        = number
-  default     = 600
+  type    = number
+  default = 900
 }
 
 variable "wait_for_capacity_timeout" {
-  description = "How long terraform apply waits for instances to pass health checks. 0 disables waiting."
-  type        = string
-  default     = "15m"
+  description = <<-EOT
+    How long `terraform apply` blocks waiting for instances to pass their
+    ELB health check.
+
+    IS THIS WAIT NEEDED? No - it is purely a convenience.
+
+      "25m" (default) - apply finishes only once Keycloak actually answers.
+                        Slower, but a green apply means it genuinely works.
+
+      "0"             - apply returns as soon as the ASG object is created,
+                        typically in seconds. The instance still boots
+                        normally in the background; Terraform just stops
+                        watching. Nothing is built differently.
+
+    Set "0" if you want fast applies and will check health yourself:
+      aws elbv2 describe-target-health --target-group-arn <arn>
+
+    IMPORTANT: this value must exceed health_check_grace_period plus the
+    time for health checks to pass, or you will time out waiting for an
+    instance that was always going to succeed.
+  EOT
+  type    = string
+  default = "25m"
 }
 
 variable "min_healthy_percentage" {

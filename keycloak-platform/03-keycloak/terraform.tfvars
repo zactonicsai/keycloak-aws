@@ -87,3 +87,20 @@ default_client_web_origins = [
 # =============================================================================
 enable_cloudwatch_agent = true
 log_retention_days      = 30
+
+# =============================================================================
+# BOOT TIMING
+# =============================================================================
+# The ASG ignores health checks for this long after launch. MUST be longer
+# than the full install or the ASG terminates instances mid-boot in a loop.
+# Measured boot is 4.5-12 min; 900s gives margin.
+health_check_grace_period = 900
+
+# How long `terraform apply` waits for the instance to go healthy.
+#
+# "25m" = apply confirms Keycloak actually works before returning.
+# "0"   = apply returns in seconds; the instance still boots normally,
+#         Terraform just does not wait. Nothing is built differently.
+#
+# Set "0" if you prefer fast applies and will check health yourself.
+wait_for_capacity_timeout = "25m"

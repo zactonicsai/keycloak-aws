@@ -349,6 +349,66 @@ Project 03 can't read project 01's state. Either:
 
 Project 01 doesn't export what a downstream project wants. Add the output to `01-network/outputs.tf` and re-apply project 01.
 
+### "Error: waiting for Auto Scaling Group capacity satisfied"
+
+```
+timeout while waiting for state to become 'ok'
+(last state: 'want at least 1 healthy instance(s), have 0')
+```
+
+**First: is the wait even needed? No.** It's purely a convenience — it makes `terraform apply` block until Keycloak actually answers. Set it to `0` and apply returns in seconds while the instance boots normally in the background:
+
+```hcl
+# 03-keycloak/terraform.tfvars
+wait_for_capacity_timeout = "0"
+```
+
+Nothing is built differently. Terraform just stops watching.
+
+**But the timeout is usually a symptom, not the problem.** Run the diagnostic:
+
+```bash
+./scripts/diagnose-asg.sh
+```
+
+It checks four things and tells you which case you're in:
+
+| What you see | What it means | Fix |
+|---|---|---|
+| Target health = `healthy` | It worked; apply stopped watching too early | Re-run apply, or raise the timeout |
+| Repeated terminations in ASG activity | **Kill/respawn loop** | Raise `health_check_grace_period` |
+| Target health = `unhealthy`, instance alive | Keycloak failed to start | Read the boot log |
+| No instance at all | Terminated mid-boot | Raise `health_check_grace_period` |
+
+**The kill/respawn loop** is the nasty one. If `health_check_grace_period` is shorter than the boot takes, the ASG decides a still-installing instance is broken, terminates it, and launches a replacement that starts from zero. Forever. Terraform reports "have 0 healthy" because it's watching that loop.
+
+**What I changed to fix this:**
+
+| Setting | Was | Now | Why |
+|---|---|---|---|
+| `health_check_grace_period` | 600s | **900s** | Old value was shorter than a slow boot |
+| `wait_for_capacity_timeout` | 15m | **25m** | Worst-case boot was ~18 min |
+| `health_check_interval` | 30s | **15s** | Detects a healthy instance twice as fast |
+| `dnf update -y` | ran | **removed** | Cost 2–5 min for no benefit |
+
+Removing the full OS update was the biggest win. The AMI is already the newest Amazon Linux 2023 (the data source looks up `most_recent = true`), so updating on the boot critical path bought almost nothing. Measured budget went from **7–18 min** to **4.5–12 min**.
+
+If you need guaranteed-latest patches, use SSM Patch Manager on a schedule instead of on boot.
+
+**Reading the boot log.** Every step now prints elapsed seconds, so you can see exactly which one is slow:
+
+```bash
+aws ssm start-session --target <instance-id>
+sudo cat /var/log/user-data.log
+```
+
+```
+[+0s]   --- STEP 1: Installing packages ---
+[+62s]  --- STEP 3: Downloading Keycloak 26.0.7 ---
+[+141s] --- STEP 7: Running the Keycloak build step ---
+[+280s] --- STEP 9: Waiting for Keycloak to report healthy ---
+```
+
 ### 503 from the load balancer
 
 Instance still booting, or failing health checks:

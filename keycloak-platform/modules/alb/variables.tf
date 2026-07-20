@@ -99,9 +99,20 @@ variable "health_check_path" {
 }
 
 variable "health_check_interval" {
-  description = "Seconds between health checks"
-  type        = number
-  default     = 30
+  description = <<-EOT
+    Seconds between ALB health checks.
+
+    Lower means a newly-booted instance is recognised as healthy sooner,
+    which shortens how long `terraform apply` blocks. With healthy_threshold
+    = 2, the detection delay is roughly (interval x 2).
+
+      interval 30 -> up to 60s after Keycloak is actually ready
+      interval 15 -> up to 30s
+
+    Do not go below 10; you are just adding load for no benefit.
+  EOT
+  type    = number
+  default = 15
 }
 
 variable "health_check_timeout" {

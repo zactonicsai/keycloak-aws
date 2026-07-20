@@ -26,6 +26,12 @@ echo "==================================================================="
 echo "Keycloak bootstrap starting at $(date)"
 echo "==================================================================="
 
+# Record the start time so every step can report elapsed seconds. When a boot
+# is too slow, this log tells you exactly WHICH step ate the budget instead of
+# leaving you to guess.
+BOOT_START=$(date +%s)
+elapsed() { echo "[+$(( $(date +%s) - BOOT_START ))s]"; }
+
 # -----------------------------------------------------------------------------
 # CONFIGURATION (filled in by Terraform)
 # -----------------------------------------------------------------------------
@@ -56,11 +62,22 @@ REALM_IMPORT_DIR="$${KEYCLOAK_HOME}/data/import"
 # STEP 1: UPDATE THE OS AND INSTALL DEPENDENCIES
 # -----------------------------------------------------------------------------
 echo ""
-echo "--- STEP 1: Installing packages ---"
+echo "$(elapsed) --- STEP 1: Installing packages ---"
 
 # dnf is the package manager on Amazon Linux 2023 (the successor to yum).
 # -y answers "yes" to every prompt, since nobody is here to type.
-dnf update -y
+#
+# NOTE: we deliberately do NOT run `dnf update -y` here.
+#
+# A full OS update takes 2-5 minutes and buys us almost nothing: the AMI is
+# already the newest Amazon Linux 2023 image (the Terraform data source looks
+# up most_recent = true), so it ships with current packages. Those minutes
+# were the single largest cause of the ASG health check timing out during
+# boot, which made the Auto Scaling Group terminate and relaunch the instance
+# in a loop.
+#
+# If you need guaranteed-latest patches, run updates on a schedule via SSM
+# Patch Manager instead of on the critical boot path.
 
 # What each package is for:
 #   java-21-amazon-corretto-headless - the Java runtime Keycloak needs.
@@ -69,7 +86,13 @@ dnf update -y
 #   jq       - a command line JSON parser, used to read the secret
 #   tar/gzip - to unpack the Keycloak download
 #   awscli   - to talk to Secrets Manager
+# --setopt=max_parallel_downloads=10 fetches packages concurrently instead of
+# one at a time. Typically halves this step.
+# --setopt=retries=3 survives a transient mirror failure rather than aborting
+# the whole boot.
 dnf install -y \
+  --setopt=max_parallel_downloads=10 \
+  --setopt=retries=3 \
   java-21-amazon-corretto-headless \
   jq \
   tar \
@@ -84,7 +107,7 @@ java -version
 # STEP 2: CREATE A DEDICATED SERVICE USER
 # -----------------------------------------------------------------------------
 echo ""
-echo "--- STEP 2: Creating the keycloak service user ---"
+echo "$(elapsed) --- STEP 2: Creating the keycloak service user ---"
 
 # NEVER run an internet-facing application as root. If someone finds a bug in
 # Keycloak, they get whatever powers the process had. Running as an
@@ -105,7 +128,7 @@ fi
 # STEP 3: DOWNLOAD AND UNPACK KEYCLOAK
 # -----------------------------------------------------------------------------
 echo ""
-echo "--- STEP 3: Downloading Keycloak $${KEYCLOAK_VERSION} ---"
+echo "$(elapsed) --- STEP 3: Downloading Keycloak $${KEYCLOAK_VERSION} ---"
 
 mkdir -p "$${KEYCLOAK_HOME}"
 cd /tmp
@@ -137,7 +160,7 @@ echo "Keycloak unpacked to $${KEYCLOAK_HOME}"
 # STEP 4: FETCH THE ADMIN PASSWORD FROM SECRETS MANAGER
 # -----------------------------------------------------------------------------
 echo ""
-echo "--- STEP 4: Retrieving admin credentials ---"
+echo "$(elapsed) --- STEP 4: Retrieving admin credentials ---"
 
 # This works with no keys or passwords stored on the box: the instance uses
 # its IAM role, which AWS injects automatically and rotates for us.
@@ -207,7 +230,7 @@ fi
 # STEP 5: FETCH THE REALM FILE FROM S3
 # -----------------------------------------------------------------------------
 echo ""
-echo "--- STEP 5: Retrieving the realm import file ---"
+echo "$(elapsed) --- STEP 5: Retrieving the realm import file ---"
 
 # WHY S3 INSTEAD OF EMBEDDING THE JSON HERE?
 #
@@ -256,7 +279,7 @@ chown -R "$${KEYCLOAK_USER}:$${KEYCLOAK_USER}" "$${REALM_IMPORT_DIR}"
 # STEP 6: CONFIGURE KEYCLOAK
 # -----------------------------------------------------------------------------
 echo ""
-echo "--- STEP 6: Writing keycloak.conf ---"
+echo "$(elapsed) --- STEP 6: Writing keycloak.conf ---"
 
 # Assemble the database section of the config.
 if [[ -n "$${DB_SECRET_ARN}" ]]; then
@@ -340,7 +363,7 @@ chown -R "$${KEYCLOAK_USER}:$${KEYCLOAK_USER}" /var/log/keycloak "$${KEYCLOAK_HO
 # STEP 7: BUILD KEYCLOAK
 # -----------------------------------------------------------------------------
 echo ""
-echo "--- STEP 7: Running the Keycloak build step ---"
+echo "$(elapsed) --- STEP 7: Running the Keycloak build step ---"
 
 # `kc.sh build` pre-compiles the configuration into an optimized image.
 # It takes a minute but makes every subsequent start much faster.
@@ -356,7 +379,7 @@ echo "Build complete."
 # STEP 8: CREATE THE SYSTEMD SERVICE
 # -----------------------------------------------------------------------------
 echo ""
-echo "--- STEP 8: Installing the systemd service ---"
+echo "$(elapsed) --- STEP 8: Installing the systemd service ---"
 
 # systemd is Linux's service manager. Registering Keycloak with it means the
 # process starts on boot and restarts automatically if it crashes.
@@ -435,7 +458,7 @@ echo "Keycloak service started."
 # STEP 9: WAIT FOR KEYCLOAK TO COME UP
 # -----------------------------------------------------------------------------
 echo ""
-echo "--- STEP 9: Waiting for Keycloak to report healthy ---"
+echo "$(elapsed) --- STEP 9: Waiting for Keycloak to report healthy ---"
 
 # Poll the health endpoint until it answers or we give up.
 # Without this the script exits while Keycloak is still starting, and the
@@ -470,7 +493,7 @@ fi
 # STEP 10: VERIFY THE REALM IMPORTED
 # -----------------------------------------------------------------------------
 echo ""
-echo "--- STEP 10: Verifying realm import ---"
+echo "$(elapsed) --- STEP 10: Verifying realm import ---"
 
 # grep -q is quiet; we only care whether it matched.
 if journalctl -u keycloak --no-pager | grep -q "Imported realm"; then
@@ -487,7 +510,7 @@ fi
 # -----------------------------------------------------------------------------
 echo ""
 echo "==================================================================="
-echo "Bootstrap finished at $(date)"
+echo "Bootstrap finished at $(date) - total $(( $(date +%s) - BOOT_START ))s"
 echo "  Realm:       $${REALM_NAME}"
 echo "  App port:    $${HTTP_PORT}"
 echo "  Health port: $${MANAGEMENT_PORT}"

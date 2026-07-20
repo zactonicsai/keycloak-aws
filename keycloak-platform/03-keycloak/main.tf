@@ -152,6 +152,13 @@ module "compute" {
   max_size         = var.max_size
   desired_capacity = var.desired_capacity
 
+  # --- Boot timing ---
+  # health_check_grace_period must exceed the full install, or the ASG kills
+  # instances mid-boot and loops. wait_for_capacity_timeout only controls how
+  # long `terraform apply` watches; set it to "0" for fast applies.
+  health_check_grace_period = var.health_check_grace_period
+  wait_for_capacity_timeout = var.wait_for_capacity_timeout
+
   # --- Keycloak application ---
   keycloak_version         = var.keycloak_version
   keycloak_http_port       = var.keycloak_http_port

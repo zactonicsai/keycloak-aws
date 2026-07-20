@@ -49,7 +49,7 @@ output "autoscaling_group_name" {
 
 output "database_mode" {
   description = "Which database Keycloak is actually using"
-  value = var.use_rds ? "PostgreSQL (RDS) at ${local.db_host}:${local.db_port}/${local.db_name}" : "Embedded H2 - DATA IS LOST ON INSTANCE REPLACEMENT"
+  value       = var.use_rds ? "PostgreSQL (RDS) at ${local.db_host}:${local.db_port}/${local.db_name}" : "Embedded H2 - DATA IS LOST ON INSTANCE REPLACEMENT"
 }
 
 output "connect_via_ssm" {

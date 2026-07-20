@@ -60,8 +60,8 @@ variable "create_nat_gateway" {
 
     COST: ~$32.85/month plus $0.045/GB processed.
   EOT
-  type    = bool
-  default = true
+  type        = bool
+  default     = true
 }
 
 variable "create_vpc_endpoints" {
@@ -75,8 +75,8 @@ variable "create_vpc_endpoints" {
     Setting this to false loses nothing functionally - SSM and KMS still work
     over the NAT Gateway. You lose the private network path, not the ability.
   EOT
-  type    = bool
-  default = true
+  type        = bool
+  default     = true
 }
 
 variable "kms_deletion_window_days" {
@@ -101,7 +101,7 @@ variable "allowed_admin_ips" {
     check this first, update it, and re-apply THIS project (01). The change
     lands immediately; you do not need to touch 02 or 03.
   EOT
-  type = list(string)
+  type        = list(string)
 }
 
 # --- Ports (must match project 03) ---

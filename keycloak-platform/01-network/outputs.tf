@@ -79,7 +79,7 @@ output "keycloak_security_group_id" {
       - project 02 writes a database rule allowing Postgres FROM this group
       - project 03 attaches it to the EC2 instances
   EOT
-  value = module.security.keycloak_security_group_id
+  value       = module.security.keycloak_security_group_id
 }
 
 output "admin_cidrs" {

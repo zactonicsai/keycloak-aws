@@ -41,8 +41,8 @@ variable "use_rds" {
             replace it on any health check failure or template change.
             Use this only for throwaway testing.
   EOT
-  type    = bool
-  default = true
+  type        = bool
+  default     = true
 }
 
 # --- Certificate and DNS ---
@@ -176,8 +176,8 @@ variable "realm_file_path" {
     IF NO FILE IS FOUND, a working default realm is generated instead of
     failing. Check the realm_source output to confirm which was used.
   EOT
-  type    = string
-  default = ""
+  type        = string
+  default     = ""
 }
 
 variable "registration_allowed" {
@@ -216,4 +216,48 @@ variable "log_retention_days" {
   description = "Days to keep logs"
   type        = number
   default     = 30
+}
+
+# =============================================================================
+# BOOT TIMING
+# =============================================================================
+# These exist because the Auto Scaling Group can time out waiting for an
+# instance that is simply still installing. See the README troubleshooting
+# section "Error: waiting for Auto Scaling Group capacity satisfied".
+
+variable "wait_for_capacity_timeout" {
+  description = <<-EOT
+    How long `terraform apply` blocks waiting for the instance to pass its
+    ELB health check.
+
+    IS THE WAIT NEEDED? NO. It is purely a convenience.
+
+      "25m" - apply finishes only when Keycloak actually answers. A green
+              apply means it genuinely works.
+
+      "0"   - apply returns in seconds, as soon as the ASG object exists.
+              The instance still boots exactly the same way; Terraform just
+              stops watching. Check health yourself afterwards with:
+                aws elbv2 describe-target-health --target-group-arn <arn>
+
+    Setting "0" does NOT make anything less reliable. It only changes
+    whether Terraform waits around to confirm.
+  EOT
+  type        = string
+  default     = "25m"
+}
+
+variable "health_check_grace_period" {
+  description = <<-EOT
+    Seconds the ASG ignores health checks after launching an instance.
+
+    THIS ONE MATTERS. If it is shorter than the boot sequence, the ASG
+    decides a still-installing instance is broken, terminates it, and
+    launches a replacement that starts from zero - forever. That loop is
+    what produces "have 0 healthy instances" until Terraform gives up.
+
+    900s covers a slow boot with margin. Raise it, never lower it.
+  EOT
+  type        = number
+  default     = 900
 }
