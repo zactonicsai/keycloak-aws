@@ -1,0 +1,39 @@
+# --- STATE FILES: NEVER COMMIT. They contain PLAINTEXT SECRETS. ---
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+
+# --- Provider plugins (re-downloaded by terraform init) ---
+.terraform/
+
+# --- Crash logs may contain sensitive values ---
+crash.log
+crash.*.log
+
+# --- Plan files contain full resource values, including secrets ---
+*.tfplan
+tfplan
+plan.out
+
+# --- Variable files that may hold secrets ---
+# NOTE: terraform.tfvars IS committed here on purpose - it holds only your
+# IP address, no secrets. These variants commonly do hold secrets:
+*.auto.tfvars
+*secret*.tfvars
+secrets.tfvars
+
+# --- Realm exports may contain user data and client secrets ---
+realms/*-realm.json
+!realms/*.example
+
+# --- Certificates and keys ---
+*.pem
+*.key
+*.p12
+*.crt
+
+# --- OS and editor noise ---
+.DS_Store
+.idea/
+.vscode/
+*.swp

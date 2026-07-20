@@ -239,7 +239,29 @@ data "aws_iam_policy_document" "keycloak_permissions" {
     }
   }
 
-  # Statement 4: read the realm file from the bucket we created above.
+  # Statement 4: read the DATABASE credentials secret from project 02.
+  # Only created when we are actually using RDS.
+  #
+  # This is why the password never travels through Terraform state: project
+  # 02 exports the secret ARN, we grant read access to it, and the instance
+  # fetches the value itself at boot.
+  dynamic "statement" {
+    for_each = var.db_secret_arn != "" ? [1] : []
+
+    content {
+      sid    = "ReadDatabaseSecret"
+      effect = "Allow"
+
+      actions = [
+        "secretsmanager:GetSecretValue",
+        "secretsmanager:DescribeSecret",
+      ]
+
+      resources = [var.db_secret_arn]
+    }
+  }
+
+  # Statement 5: read the realm file from the bucket we created above.
   # Scoped to that ONE object, not the whole bucket and not all of S3.
   statement {
     sid    = "ReadRealmFileFromS3"
@@ -509,7 +531,7 @@ resource "aws_s3_object" "realm" {
 
   # etag is an MD5 of the content. When the realm changes, the etag changes,
   # which tells Terraform to re-upload. Without it, edits would be ignored.
-  source_hash = md5(local.realm_json)
+  etag = md5(local.realm_json)
 
   server_side_encryption = "aws:kms"
   kms_key_id             = var.secrets_kms_key_arn
@@ -570,6 +592,10 @@ resource "aws_launch_template" "keycloak" {
     hostname_url       = var.keycloak_hostname
     java_heap          = var.java_heap_size
     db_vendor          = var.db_vendor
+    db_secret_arn      = var.db_secret_arn
+    db_host            = var.db_host
+    db_port            = var.db_port
+    db_name            = var.db_name
   }))
 
   # --- The hard drive ---

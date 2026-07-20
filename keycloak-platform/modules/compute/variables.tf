@@ -291,3 +291,42 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+# =============================================================================
+# DATABASE CONNECTION (from project 02)
+# =============================================================================
+# All optional. Leave every one empty to run on the embedded H2 database,
+# which is fine for a throwaway test and loses all data on instance
+# replacement.
+
+variable "db_secret_arn" {
+  description = <<-EOT
+    Secrets Manager ARN holding the database credentials, from project 02.
+
+    The instance role is granted read access to this ARN and the boot script
+    fetches the password from it. The password is never passed through
+    Terraform state or user_data.
+
+    Empty = use the embedded H2 database instead.
+  EOT
+  type    = string
+  default = ""
+}
+
+variable "db_host" {
+  description = "Database hostname from project 02. Empty when using H2."
+  type        = string
+  default     = ""
+}
+
+variable "db_port" {
+  description = "Database port from project 02"
+  type        = number
+  default     = 5432
+}
+
+variable "db_name" {
+  description = "Database name from project 02"
+  type        = string
+  default     = "keycloak"
+}

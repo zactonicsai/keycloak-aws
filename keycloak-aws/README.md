@@ -291,6 +291,7 @@ Log in with username `kcadmin` and the password you just fetched.
 | 17 | IAM role + policies | The server's permissions |
 | 18 | Secrets Manager secret | The admin password |
 | 19 | CloudWatch log group | Where logs go |
+| 20 | S3 bucket + object | Holds the realm import file |
 
 ---
 
@@ -545,6 +546,10 @@ Think of Keycloak as an apartment building and each realm as an apartment.
 
 Either way, `terraform apply` succeeds.
 
+**Where the realm actually lives:** Terraform resolves which JSON to use, then uploads it to a dedicated **S3 bucket**. The instance downloads it at boot using its IAM role.
+
+Why not just embed it in the boot script? EC2 `user_data` is hard-capped at **16,384 bytes after base64 encoding** — and base64 inflates by ~33%. A realm with a few hundred users blows past that, and AWS rejects it at launch with `InvalidUserData.Malformed`. Moving the realm to S3 removes the ceiling entirely, and editing the realm no longer forces the launch template to be replaced.
+
 Here's the actual logic, in `modules/compute/main.tf`:
 
 ```hcl
@@ -736,6 +741,17 @@ terraform version               # confirm 1.10.0+
 ```
 
 > **Why not just add a DynamoDB table instead?** That's the older approach and it works, but it means creating, paying for, and remembering another resource. Upgrading is simpler and it's where Terraform is going. This project is S3-only by design.
+
+### "User data is limited to 16384 bytes"
+
+`terraform apply` fails creating the launch template.
+
+EC2 caps `user_data` at 16,384 bytes **after base64 encoding**, which adds ~33% overhead. This project handles it two ways:
+
+1. **`base64gzip()`** compresses the boot script before encoding. cloud-init spots the gzip header and decompresses automatically. Our ~16 KB script becomes ~8 KB, about half the limit.
+2. **The realm file lives in S3**, not in the script, so realm size can't push you over.
+
+If you hit this after adding your own steps to `user_data.sh`, the script itself has grown too large. Move the bulk into a file in S3 and download it at boot, exactly as the realm does.
 
 ### Realm didn't import
 

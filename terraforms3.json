@@ -1,0 +1,3954 @@
+{
+  "version": 4,
+  "terraform_version": "1.15.6",
+  "serial": 15,
+  "lineage": "76b27781-9609-5033-05bd-f122f36f096e",
+  "outputs": {
+    "admin_username": {
+      "value": "kcadmin",
+      "type": "string"
+    },
+    "alb_dns_name": {
+      "value": "keycloak-dev-alb-1178637783.us-east-1.elb.amazonaws.com",
+      "type": "string"
+    },
+    "allowed_admin_ips": {
+      "value": [
+        "68.32.112.68/32"
+      ],
+      "type": [
+        "tuple",
+        [
+          "string"
+        ]
+      ]
+    },
+    "connect_via_ssm": {
+      "value": "aws ssm start-session --target $(aws ec2 describe-instances --filters 'Name=tag:Name,Values=keycloak-dev-keycloak' 'Name=instance-state-name,Values=running' --query 'Reservations[0].Instances[0].InstanceId' --output text)",
+      "type": "string"
+    },
+    "get_admin_password": {
+      "value": "aws secretsmanager get-secret-value --secret-id keycloak-dev-keycloak-admin-2026072021354806850000000c --query SecretString --output text | jq -r '.password'",
+      "type": "string"
+    },
+    "keycloak_admin_console_url": {
+      "value": "https://keycloak-dev-alb-1178637783.us-east-1.elb.amazonaws.com/admin",
+      "type": "string"
+    },
+    "keycloak_url": {
+      "value": "https://keycloak-dev-alb-1178637783.us-east-1.elb.amazonaws.com",
+      "type": "string"
+    },
+    "kms_key_arns": {
+      "value": {
+        "ebs": "arn:aws:kms:us-east-1:406207085797:key/67b2de73-b06a-4a63-ba24-f23809880aa6",
+        "secrets": "arn:aws:kms:us-east-1:406207085797:key/afbe7fc4-9f79-4f4b-8d92-b531f24f0963"
+      },
+      "type": [
+        "object",
+        {
+          "ebs": "string",
+          "secrets": "string"
+        }
+      ]
+    },
+    "next_steps": {
+      "value": "\n===================================================================\nDEPLOYMENT COMPLETE\n===================================================================\n\n1. WAIT 5-8 MINUTES. The instance is still installing Keycloak.\n   Watch progress:\n     aws elbv2 describe-target-health --target-group-arn arn:aws:elasticloadbalancing:us-east-1:406207085797:targetgroup/keycloak-dev-tg/7184944914dbd4b1\n   You want \"healthy\". \"initial\" means still booting.\n\n2. GET YOUR PASSWORD:\n     aws secretsmanager get-secret-value --secret-id keycloak-dev-keycloak-admin-2026072021354806850000000c --query SecretString --output text | jq -r '.password'\n\n3. OPEN THE CONSOLE:\n     https://keycloak-dev-alb-1178637783.us-east-1.elb.amazonaws.com/admin\n   Username: kcadmin\n\n4. WHICH REALM DID YOU GET?\n     built-in default (no file found at ../../modules/compute/../../realms/myrealm-realm.json)\n\nIF THE PAGE WILL NOT LOAD:\n  - Check your IP has not changed:  curl ifconfig.me\n    It must be in: 68.32.112.68/32\n  - A self-signed certificate warning is expected. Click through it.\n  - Still stuck? See the Troubleshooting section of the README.\n===================================================================\n",
+      "type": "string"
+    },
+    "realm_name": {
+      "value": "myrealm",
+      "type": "string"
+    },
+    "realm_source": {
+      "value": "built-in default (no file found at ../../modules/compute/../../realms/myrealm-realm.json)",
+      "type": "string"
+    },
+    "target_group_arn": {
+      "value": "arn:aws:elasticloadbalancing:us-east-1:406207085797:targetgroup/keycloak-dev-tg/7184944914dbd4b1",
+      "type": "string"
+    },
+    "vpc_id": {
+      "value": "vpc-0dcaa1d42559b49fc",
+      "type": "string"
+    }
+  },
+  "resources": [
+    {
+      "mode": "data",
+      "type": "aws_availability_zones",
+      "name": "available",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "all_availability_zones": null,
+            "exclude_names": null,
+            "exclude_zone_ids": null,
+            "filter": [
+              {
+                "name": "opt-in-status",
+                "values": [
+                  "opt-in-not-required"
+                ]
+              }
+            ],
+            "group_names": [
+              "us-east-1-zg-1"
+            ],
+            "id": "us-east-1",
+            "names": [
+              "us-east-1a",
+              "us-east-1b",
+              "us-east-1c",
+              "us-east-1d",
+              "us-east-1e",
+              "us-east-1f"
+            ],
+            "state": "available",
+            "timeouts": null,
+            "zone_ids": [
+              "use1-az1",
+              "use1-az2",
+              "use1-az4",
+              "use1-az6",
+              "use1-az3",
+              "use1-az5"
+            ]
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0
+        }
+      ]
+    },
+    {
+      "module": "module.alb",
+      "mode": "data",
+      "type": "aws_route53_zone",
+      "name": "main",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": []
+    },
+    {
+      "module": "module.alb",
+      "mode": "managed",
+      "type": "aws_acm_certificate",
+      "name": "main",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": []
+    },
+    {
+      "module": "module.alb",
+      "mode": "managed",
+      "type": "aws_acm_certificate",
+      "name": "self_signed",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "index_key": 0,
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:acm:us-east-1:406207085797:certificate/fd49bed6-ea65-486a-9ecc-9f84df926cd1",
+            "certificate_authority_arn": "",
+            "certificate_body": "-----BEGIN CERTIFICATE-----\nMIIDOjCCAiKgAwIBAgIQd6Fi15ZYsFNOXwp1t904fzANBgkqhkiG9w0BAQsFADAw\nMRUwEwYDVQQKEwxrZXljbG9hay1kZXYxFzAVBgNVBAMTDmtleWNsb2FrLmxvY2Fs\nMB4XDTI2MDcyMDIxMzUzM1oXDTI3MDcyMDIxMzUzM1owMDEVMBMGA1UEChMMa2V5\nY2xvYWstZGV2MRcwFQYDVQQDEw5rZXljbG9hay5sb2NhbDCCASIwDQYJKoZIhvcN\nAQEBBQADggEPADCCAQoCggEBAKhegcprvC5OJJ76yQxi2VRbc2EgzUHtbEEeRsmk\nAWK6p8SKgJ9K6jEX0hILUxn6d0RrYDjfaJC8ZnhAv0k6gkr99cp0+TvOC/gKy6lN\nUgCGm3bcTxpiIF1CxMuakHBjMFNOrZHf6BHY2NC0A1EaPluhDFfNC4jrE0GUFiOD\n+2zp86nSUOhI45xF47gzZ/FtGRcC5V2aCYLHzXPAe8rqvrLMgCWHd/TbzGfQRCLK\nIVWMThKDxZmV2KUYIiqq7BMZc4VuzYJpL7YSgjZrVuPx3K9bIqL4udKYbdeb4Kyf\ndH7rqK04FndoePb5UGeKRRvxC9OSFnp44mifJAIIJrjJs7kCAwEAAaNQME4wDgYD\nVR0PAQH/BAQDAgWgMBMGA1UdJQQMMAoGCCsGAQUFBwMBMAwGA1UdEwEB/wQCMAAw\nGQYDVR0RBBIwEIIOa2V5Y2xvYWsubG9jYWwwDQYJKoZIhvcNAQELBQADggEBAAtl\npH3Hr5QaPAbNWPCUPFxfAIQm5SOOwSAx8gqugSRSbn6sZg3wB1DTMfjR4peC4jnH\nu3zNxQ33XxyHIoodyi9Bb27xKl2FjC/El3mSrS2lAOyEZGQc8oTI50tWnXcdW8kQ\nUTb55Y8h+KMj0BDJTGfzd6bI6nmJcru0ptAX3qplPI6+XNLFHeoz37UTDxKQjngm\ndLSFKm+UyWGcsExoJhpPE8Mo0EfGYTb5gkpwELpVGhu6JZgAhWDi9r9gXJIvislb\nJFEuXCjWEOxPwELWKKFX1lB24pmhrcj0FUJgYKHFsMTVduHPj51cfs+/J/yhE9Q0\nPSBb8JshY3doULK1+xs=\n-----END CERTIFICATE-----\n",
+            "certificate_chain": null,
+            "domain_name": "keycloak.local",
+            "domain_validation_options": [],
+            "early_renewal_duration": "",
+            "id": "arn:aws:acm:us-east-1:406207085797:certificate/fd49bed6-ea65-486a-9ecc-9f84df926cd1",
+            "key_algorithm": "RSA_2048",
+            "not_after": "2027-07-20T21:35:33Z",
+            "not_before": "2026-07-20T21:35:33Z",
+            "options": [
+              {
+                "certificate_transparency_logging_preference": "DISABLED"
+              }
+            ],
+            "pending_renewal": false,
+            "private_key": "-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEAqF6Bymu8Lk4knvrJDGLZVFtzYSDNQe1sQR5GyaQBYrqnxIqA\nn0rqMRfSEgtTGfp3RGtgON9okLxmeEC/STqCSv31ynT5O84L+ArLqU1SAIabdtxP\nGmIgXULEy5qQcGMwU06tkd/oEdjY0LQDURo+W6EMV80LiOsTQZQWI4P7bOnzqdJQ\n6EjjnEXjuDNn8W0ZFwLlXZoJgsfNc8B7yuq+ssyAJYd39NvMZ9BEIsohVYxOEoPF\nmZXYpRgiKqrsExlzhW7NgmkvthKCNmtW4/Hcr1siovi50pht15vgrJ90fuuorTgW\nd2h49vlQZ4pFG/EL05IWenjiaJ8kAggmuMmzuQIDAQABAoIBABTDtwkSWV5yl7Sd\npD7pT/lF4AhqBbZsRA4R4FQM7HjTIU6tcCh1EkXktK0yBVkuWRgwj+jjsJ8tBQwu\nnAi5dQkvoekKnRRBmJtKJYznMsZK05CIoh7UXD50NhYQJWEe8n5LtT9I2HOfBTpU\nARa3AFrHlWCcsp/7sd/EFijiJZdsXbkAx5Sm3beQz8hW2/11+ELGtw58tpHYmg7w\nWb8HJtN3lFC32l9Mufiv2+tqX0o3+fyVG5+4U/aFe3Dju1BuR5KwntlnzR3tpdbY\nYr89+TaH1rc6QVdMh/kM8/PyaaeuVCuBNJ/kxJBEiaC8EAKOMadVeqmcr0joFgip\n1H80JaMCgYEAyDj+wFLuHS/WmITbWSdsSJxKU1LhjbHG4TktMtxRS9q84hdZhA9C\nSBeJdl9JVv9amFF0bnKfR7ohliMPlHEvHjCiLdl4FEqHzO1AkaDdDYYoeAoScNmw\nmKL9JzWo7E3AM9cPXWknUdwU820YxmFeUy5vhJmYur5q6mdpALpWpdcCgYEA10Xc\nhpOpaIu+MmlPly4n2ENjbAL3zALyc3kJwNXdoVImJOEmhb92OWCL1R55wJwvExf8\nB2uBftpaJSSRDs9tUYP8i1MmVWAFKi01TIz//EOAQiLqy9xbKa0DSYzOWeH0hg5q\nOCRVkU4CeNecyOdypTZqpIf5KhGzaUvSmMLmIO8CgYACoi1Hnk+fdqed7fFspMYZ\n1mRr4CUzVelFwRjFGHzBQKlHWANHZ2P5ysV2Fx7B1C3+3uNnKH7L1LjoXqGv1CVI\ngl8/tyKLMcfDfENjJviBWwhhO9CuR065Uzt9LomAQi2LAQMkuWNZAkoMQZ0XzuQM\nuAmjdtm5axPA7YdGCS1mlQKBgQDR321I0qrlnt+13A/ZTwlPgRtr0VTuU601wLou\ngxKI1UMUz2C0Il5LQAHzq7t9eYc3cTmnrjrYhl4+OfEl5Doqr6fF2THVKEDAxsRg\ntlJXCSQA1nPcfh9ueRtsWFdRL8Yp7+HEjD/T4p7sWyCiiWqvAWdksp/LUOh97osJ\nnXGohwKBgQDDpA7/+6HDyrOX9loOusfatEkLVtZHmgp/kSMp8poE552PSe82bJzz\nvh8Zdhag3qIuMx1pCKn+UouPkVwtj8wWuBiFHZxGIQaoDH+6GAkVFgqzQ6hAv+B+\nH0fMR4oBwZ6JyhcNT9vwlNTLm1xzBlGXSf/cxb2zaG807ekkPuB++A==\n-----END RSA PRIVATE KEY-----\n",
+            "renewal_eligibility": "INELIGIBLE",
+            "renewal_summary": [],
+            "status": "ISSUED",
+            "subject_alternative_names": [
+              "keycloak.local"
+            ],
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-self-signed-cert",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws",
+              "Warning": "Self-signed - browsers will warn. Do not use in production."
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-self-signed-cert",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws",
+              "Warning": "Self-signed - browsers will warn. Do not use in production."
+            },
+            "type": "IMPORTED",
+            "validation_emails": [],
+            "validation_method": "NONE",
+            "validation_option": []
+          },
+          "sensitive_attributes": [
+            [
+              {
+                "type": "get_attr",
+                "value": "private_key"
+              }
+            ]
+          ],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "module.alb.tls_private_key.self_signed",
+            "module.alb.tls_self_signed_cert.self_signed"
+          ],
+          "create_before_destroy": true
+        }
+      ]
+    },
+    {
+      "module": "module.alb",
+      "mode": "managed",
+      "type": "aws_acm_certificate_validation",
+      "name": "main",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": []
+    },
+    {
+      "module": "module.alb",
+      "mode": "managed",
+      "type": "aws_lb",
+      "name": "main",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "access_logs": [
+              {
+                "bucket": "",
+                "enabled": false,
+                "prefix": ""
+              }
+            ],
+            "arn": "arn:aws:elasticloadbalancing:us-east-1:406207085797:loadbalancer/app/keycloak-dev-alb/f907f4c2e321a1cb",
+            "arn_suffix": "app/keycloak-dev-alb/f907f4c2e321a1cb",
+            "client_keep_alive": 3600,
+            "connection_logs": [
+              {
+                "bucket": "",
+                "enabled": false,
+                "prefix": ""
+              }
+            ],
+            "customer_owned_ipv4_pool": "",
+            "desync_mitigation_mode": "defensive",
+            "dns_name": "keycloak-dev-alb-1178637783.us-east-1.elb.amazonaws.com",
+            "dns_record_client_routing_policy": null,
+            "drop_invalid_header_fields": true,
+            "enable_cross_zone_load_balancing": true,
+            "enable_deletion_protection": false,
+            "enable_http2": true,
+            "enable_tls_version_and_cipher_suite_headers": false,
+            "enable_waf_fail_open": false,
+            "enable_xff_client_port": false,
+            "enable_zonal_shift": false,
+            "enforce_security_group_inbound_rules_on_private_link_traffic": "",
+            "id": "arn:aws:elasticloadbalancing:us-east-1:406207085797:loadbalancer/app/keycloak-dev-alb/f907f4c2e321a1cb",
+            "idle_timeout": 60,
+            "internal": false,
+            "ip_address_type": "ipv4",
+            "ipam_pools": [],
+            "load_balancer_type": "application",
+            "minimum_load_balancer_capacity": [],
+            "name": "keycloak-dev-alb",
+            "name_prefix": "",
+            "preserve_host_header": false,
+            "security_groups": [
+              "sg-0c19c09147f95c100"
+            ],
+            "subnet_mapping": [
+              {
+                "allocation_id": "",
+                "ipv6_address": "",
+                "outpost_id": "",
+                "private_ipv4_address": "",
+                "subnet_id": "subnet-0266257f44270c52b"
+              },
+              {
+                "allocation_id": "",
+                "ipv6_address": "",
+                "outpost_id": "",
+                "private_ipv4_address": "",
+                "subnet_id": "subnet-0a8316496f044358e"
+              }
+            ],
+            "subnets": [
+              "subnet-0266257f44270c52b",
+              "subnet-0a8316496f044358e"
+            ],
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-alb",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-alb",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "timeouts": null,
+            "vpc_id": "vpc-0dcaa1d42559b49fc",
+            "xff_header_processing_mode": "append",
+            "zone_id": "Z35SXDOTRQ7X7K"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjo2MDAwMDAwMDAwMDAsImRlbGV0ZSI6NjAwMDAwMDAwMDAwLCJ1cGRhdGUiOjYwMDAwMDAwMDAwMH19",
+          "dependencies": [
+            "data.aws_availability_zones.available",
+            "module.network.aws_subnet.public",
+            "module.network.aws_vpc.main",
+            "module.security.aws_security_group.alb"
+          ],
+          "create_before_destroy": true
+        }
+      ]
+    },
+    {
+      "module": "module.alb",
+      "mode": "managed",
+      "type": "aws_lb_listener",
+      "name": "http_redirect",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "index_key": 0,
+          "schema_version": 0,
+          "attributes": {
+            "alpn_policy": null,
+            "arn": "arn:aws:elasticloadbalancing:us-east-1:406207085797:listener/app/keycloak-dev-alb/f907f4c2e321a1cb/653e4c1bddf2b81c",
+            "certificate_arn": null,
+            "default_action": [
+              {
+                "authenticate_cognito": [],
+                "authenticate_oidc": [],
+                "fixed_response": [],
+                "forward": [],
+                "order": 1,
+                "redirect": [
+                  {
+                    "host": "#{host}",
+                    "path": "/#{path}",
+                    "port": "443",
+                    "protocol": "HTTPS",
+                    "query": "#{query}",
+                    "status_code": "HTTP_301"
+                  }
+                ],
+                "target_group_arn": "",
+                "type": "redirect"
+              }
+            ],
+            "id": "arn:aws:elasticloadbalancing:us-east-1:406207085797:listener/app/keycloak-dev-alb/f907f4c2e321a1cb/653e4c1bddf2b81c",
+            "load_balancer_arn": "arn:aws:elasticloadbalancing:us-east-1:406207085797:loadbalancer/app/keycloak-dev-alb/f907f4c2e321a1cb",
+            "mutual_authentication": [],
+            "port": 80,
+            "protocol": "HTTP",
+            "routing_http_request_x_amzn_mtls_clientcert_header_name": null,
+            "routing_http_request_x_amzn_mtls_clientcert_issuer_header_name": null,
+            "routing_http_request_x_amzn_mtls_clientcert_leaf_header_name": null,
+            "routing_http_request_x_amzn_mtls_clientcert_serial_number_header_name": null,
+            "routing_http_request_x_amzn_mtls_clientcert_subject_header_name": null,
+            "routing_http_request_x_amzn_mtls_clientcert_validity_header_name": null,
+            "routing_http_request_x_amzn_tls_cipher_suite_header_name": null,
+            "routing_http_request_x_amzn_tls_version_header_name": null,
+            "routing_http_response_access_control_allow_credentials_header_value": "",
+            "routing_http_response_access_control_allow_headers_header_value": "",
+            "routing_http_response_access_control_allow_methods_header_value": "",
+            "routing_http_response_access_control_allow_origin_header_value": "",
+            "routing_http_response_access_control_expose_headers_header_value": "",
+            "routing_http_response_access_control_max_age_header_value": "",
+            "routing_http_response_content_security_policy_header_value": "",
+            "routing_http_response_server_enabled": true,
+            "routing_http_response_strict_transport_security_header_value": "",
+            "routing_http_response_x_content_type_options_header_value": "",
+            "routing_http_response_x_frame_options_header_value": "",
+            "ssl_policy": "",
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-http-redirect-listener",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-http-redirect-listener",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "tcp_idle_timeout_seconds": null,
+            "timeouts": null
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjozMDAwMDAwMDAwMDAsInVwZGF0ZSI6MzAwMDAwMDAwMDAwfX0=",
+          "dependencies": [
+            "data.aws_availability_zones.available",
+            "module.alb.aws_lb.main",
+            "module.network.aws_subnet.public",
+            "module.network.aws_vpc.main",
+            "module.security.aws_security_group.alb"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.alb",
+      "mode": "managed",
+      "type": "aws_lb_listener",
+      "name": "https",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "alpn_policy": null,
+            "arn": "arn:aws:elasticloadbalancing:us-east-1:406207085797:listener/app/keycloak-dev-alb/f907f4c2e321a1cb/41802d55c9b67f41",
+            "certificate_arn": "arn:aws:acm:us-east-1:406207085797:certificate/fd49bed6-ea65-486a-9ecc-9f84df926cd1",
+            "default_action": [
+              {
+                "authenticate_cognito": [],
+                "authenticate_oidc": [],
+                "fixed_response": [],
+                "forward": [],
+                "order": 1,
+                "redirect": [],
+                "target_group_arn": "arn:aws:elasticloadbalancing:us-east-1:406207085797:targetgroup/keycloak-dev-tg/7184944914dbd4b1",
+                "type": "forward"
+              }
+            ],
+            "id": "arn:aws:elasticloadbalancing:us-east-1:406207085797:listener/app/keycloak-dev-alb/f907f4c2e321a1cb/41802d55c9b67f41",
+            "load_balancer_arn": "arn:aws:elasticloadbalancing:us-east-1:406207085797:loadbalancer/app/keycloak-dev-alb/f907f4c2e321a1cb",
+            "mutual_authentication": [
+              {
+                "advertise_trust_store_ca_names": "",
+                "ignore_client_certificate_expiry": false,
+                "mode": "off",
+                "trust_store_arn": ""
+              }
+            ],
+            "port": 443,
+            "protocol": "HTTPS",
+            "routing_http_request_x_amzn_mtls_clientcert_header_name": "",
+            "routing_http_request_x_amzn_mtls_clientcert_issuer_header_name": "",
+            "routing_http_request_x_amzn_mtls_clientcert_leaf_header_name": "",
+            "routing_http_request_x_amzn_mtls_clientcert_serial_number_header_name": "",
+            "routing_http_request_x_amzn_mtls_clientcert_subject_header_name": "",
+            "routing_http_request_x_amzn_mtls_clientcert_validity_header_name": "",
+            "routing_http_request_x_amzn_tls_cipher_suite_header_name": "",
+            "routing_http_request_x_amzn_tls_version_header_name": "",
+            "routing_http_response_access_control_allow_credentials_header_value": "",
+            "routing_http_response_access_control_allow_headers_header_value": "",
+            "routing_http_response_access_control_allow_methods_header_value": "",
+            "routing_http_response_access_control_allow_origin_header_value": "",
+            "routing_http_response_access_control_expose_headers_header_value": "",
+            "routing_http_response_access_control_max_age_header_value": "",
+            "routing_http_response_content_security_policy_header_value": "",
+            "routing_http_response_server_enabled": true,
+            "routing_http_response_strict_transport_security_header_value": "",
+            "routing_http_response_x_content_type_options_header_value": "",
+            "routing_http_response_x_frame_options_header_value": "",
+            "ssl_policy": "ELBSecurityPolicy-TLS13-1-2-2021-06",
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-https-listener",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-https-listener",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "tcp_idle_timeout_seconds": null,
+            "timeouts": null
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjozMDAwMDAwMDAwMDAsInVwZGF0ZSI6MzAwMDAwMDAwMDAwfX0=",
+          "dependencies": [
+            "data.aws_availability_zones.available",
+            "module.alb.aws_acm_certificate.main",
+            "module.alb.aws_acm_certificate.self_signed",
+            "module.alb.aws_acm_certificate_validation.main",
+            "module.alb.aws_lb.main",
+            "module.alb.aws_lb_target_group.keycloak",
+            "module.alb.aws_route53_record.cert_validation",
+            "module.alb.data.aws_route53_zone.main",
+            "module.alb.tls_private_key.self_signed",
+            "module.alb.tls_self_signed_cert.self_signed",
+            "module.network.aws_subnet.public",
+            "module.network.aws_vpc.main",
+            "module.security.aws_security_group.alb"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.alb",
+      "mode": "managed",
+      "type": "aws_lb_listener_rule",
+      "name": "admin_allow_from_approved_ips",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "index_key": 0,
+          "schema_version": 0,
+          "attributes": {
+            "action": [
+              {
+                "authenticate_cognito": [],
+                "authenticate_oidc": [],
+                "fixed_response": [],
+                "forward": [],
+                "order": 1,
+                "redirect": [],
+                "target_group_arn": "arn:aws:elasticloadbalancing:us-east-1:406207085797:targetgroup/keycloak-dev-tg/7184944914dbd4b1",
+                "type": "forward"
+              }
+            ],
+            "arn": "arn:aws:elasticloadbalancing:us-east-1:406207085797:listener-rule/app/keycloak-dev-alb/f907f4c2e321a1cb/41802d55c9b67f41/6cfbfb19cecaac03",
+            "condition": [
+              {
+                "host_header": [],
+                "http_header": [],
+                "http_request_method": [],
+                "path_pattern": [
+                  {
+                    "values": [
+                      "/admin",
+                      "/admin/*"
+                    ]
+                  }
+                ],
+                "query_string": [],
+                "source_ip": []
+              },
+              {
+                "host_header": [],
+                "http_header": [],
+                "http_request_method": [],
+                "path_pattern": [],
+                "query_string": [],
+                "source_ip": [
+                  {
+                    "values": [
+                      "68.32.112.68/32"
+                    ]
+                  }
+                ]
+              }
+            ],
+            "id": "arn:aws:elasticloadbalancing:us-east-1:406207085797:listener-rule/app/keycloak-dev-alb/f907f4c2e321a1cb/41802d55c9b67f41/6cfbfb19cecaac03",
+            "listener_arn": "arn:aws:elasticloadbalancing:us-east-1:406207085797:listener/app/keycloak-dev-alb/f907f4c2e321a1cb/41802d55c9b67f41",
+            "priority": 100,
+            "tags": null,
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "keycloak"
+            }
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "data.aws_availability_zones.available",
+            "module.alb.aws_acm_certificate.main",
+            "module.alb.aws_acm_certificate.self_signed",
+            "module.alb.aws_acm_certificate_validation.main",
+            "module.alb.aws_lb.main",
+            "module.alb.aws_lb_listener.https",
+            "module.alb.aws_lb_target_group.keycloak",
+            "module.alb.aws_route53_record.cert_validation",
+            "module.alb.data.aws_route53_zone.main",
+            "module.alb.tls_private_key.self_signed",
+            "module.alb.tls_self_signed_cert.self_signed",
+            "module.network.aws_subnet.public",
+            "module.network.aws_vpc.main",
+            "module.security.aws_security_group.alb"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.alb",
+      "mode": "managed",
+      "type": "aws_lb_listener_rule",
+      "name": "admin_deny_everyone_else",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "index_key": 0,
+          "schema_version": 0,
+          "attributes": {
+            "action": [
+              {
+                "authenticate_cognito": [],
+                "authenticate_oidc": [],
+                "fixed_response": [
+                  {
+                    "content_type": "text/plain",
+                    "message_body": "Forbidden - administrative paths are restricted by source IP.",
+                    "status_code": "403"
+                  }
+                ],
+                "forward": [],
+                "order": 1,
+                "redirect": [],
+                "target_group_arn": "",
+                "type": "fixed-response"
+              }
+            ],
+            "arn": "arn:aws:elasticloadbalancing:us-east-1:406207085797:listener-rule/app/keycloak-dev-alb/f907f4c2e321a1cb/41802d55c9b67f41/c915069fb3cb800d",
+            "condition": [
+              {
+                "host_header": [],
+                "http_header": [],
+                "http_request_method": [],
+                "path_pattern": [
+                  {
+                    "values": [
+                      "/admin",
+                      "/admin/*"
+                    ]
+                  }
+                ],
+                "query_string": [],
+                "source_ip": []
+              }
+            ],
+            "id": "arn:aws:elasticloadbalancing:us-east-1:406207085797:listener-rule/app/keycloak-dev-alb/f907f4c2e321a1cb/41802d55c9b67f41/c915069fb3cb800d",
+            "listener_arn": "arn:aws:elasticloadbalancing:us-east-1:406207085797:listener/app/keycloak-dev-alb/f907f4c2e321a1cb/41802d55c9b67f41",
+            "priority": 110,
+            "tags": null,
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "keycloak"
+            }
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "data.aws_availability_zones.available",
+            "module.alb.aws_acm_certificate.main",
+            "module.alb.aws_acm_certificate.self_signed",
+            "module.alb.aws_acm_certificate_validation.main",
+            "module.alb.aws_lb.main",
+            "module.alb.aws_lb_listener.https",
+            "module.alb.aws_lb_target_group.keycloak",
+            "module.alb.aws_route53_record.cert_validation",
+            "module.alb.data.aws_route53_zone.main",
+            "module.alb.tls_private_key.self_signed",
+            "module.alb.tls_self_signed_cert.self_signed",
+            "module.network.aws_subnet.public",
+            "module.network.aws_vpc.main",
+            "module.security.aws_security_group.alb"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.alb",
+      "mode": "managed",
+      "type": "aws_lb_target_group",
+      "name": "keycloak",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:elasticloadbalancing:us-east-1:406207085797:targetgroup/keycloak-dev-tg/7184944914dbd4b1",
+            "arn_suffix": "targetgroup/keycloak-dev-tg/7184944914dbd4b1",
+            "connection_termination": null,
+            "deregistration_delay": "60",
+            "health_check": [
+              {
+                "enabled": true,
+                "healthy_threshold": 2,
+                "interval": 30,
+                "matcher": "200",
+                "path": "/health/ready",
+                "port": "9000",
+                "protocol": "HTTP",
+                "timeout": 5,
+                "unhealthy_threshold": 5
+              }
+            ],
+            "id": "arn:aws:elasticloadbalancing:us-east-1:406207085797:targetgroup/keycloak-dev-tg/7184944914dbd4b1",
+            "ip_address_type": "ipv4",
+            "lambda_multi_value_headers_enabled": false,
+            "load_balancer_arns": [],
+            "load_balancing_algorithm_type": "round_robin",
+            "load_balancing_anomaly_mitigation": "off",
+            "load_balancing_cross_zone_enabled": "use_load_balancer_configuration",
+            "name": "keycloak-dev-tg",
+            "name_prefix": "",
+            "port": 8080,
+            "preserve_client_ip": null,
+            "protocol": "HTTP",
+            "protocol_version": "HTTP1",
+            "proxy_protocol_v2": false,
+            "slow_start": 0,
+            "stickiness": [
+              {
+                "cookie_duration": 86400,
+                "cookie_name": "",
+                "enabled": true,
+                "type": "lb_cookie"
+              }
+            ],
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-tg",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-tg",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "target_failover": [
+              {
+                "on_deregistration": null,
+                "on_unhealthy": null
+              }
+            ],
+            "target_group_health": [
+              {
+                "dns_failover": [
+                  {
+                    "minimum_healthy_targets_count": "1",
+                    "minimum_healthy_targets_percentage": "off"
+                  }
+                ],
+                "unhealthy_state_routing": [
+                  {
+                    "minimum_healthy_targets_count": 1,
+                    "minimum_healthy_targets_percentage": "off"
+                  }
+                ]
+              }
+            ],
+            "target_health_state": [
+              {
+                "enable_unhealthy_connection_termination": null,
+                "unhealthy_draining_interval": null
+              }
+            ],
+            "target_type": "instance",
+            "vpc_id": "vpc-0dcaa1d42559b49fc"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "module.network.aws_vpc.main"
+          ],
+          "create_before_destroy": true
+        }
+      ]
+    },
+    {
+      "module": "module.alb",
+      "mode": "managed",
+      "type": "aws_route53_record",
+      "name": "cert_validation",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": []
+    },
+    {
+      "module": "module.alb",
+      "mode": "managed",
+      "type": "aws_route53_record",
+      "name": "keycloak",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": []
+    },
+    {
+      "module": "module.alb",
+      "mode": "managed",
+      "type": "tls_private_key",
+      "name": "self_signed",
+      "provider": "provider[\"registry.terraform.io/hashicorp/tls\"]",
+      "instances": [
+        {
+          "index_key": 0,
+          "schema_version": 1,
+          "attributes": {
+            "algorithm": "RSA",
+            "ecdsa_curve": "P224",
+            "id": "9928bbb0bfe98a4ef24528cd3369d00893154292",
+            "private_key_openssh": "-----BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABFwAAAAdz\nc2gtcnNhAAAAAwEAAQAAAQEAqF6Bymu8Lk4knvrJDGLZVFtzYSDNQe1sQR5GyaQB\nYrqnxIqAn0rqMRfSEgtTGfp3RGtgON9okLxmeEC/STqCSv31ynT5O84L+ArLqU1S\nAIabdtxPGmIgXULEy5qQcGMwU06tkd/oEdjY0LQDURo+W6EMV80LiOsTQZQWI4P7\nbOnzqdJQ6EjjnEXjuDNn8W0ZFwLlXZoJgsfNc8B7yuq+ssyAJYd39NvMZ9BEIsoh\nVYxOEoPFmZXYpRgiKqrsExlzhW7NgmkvthKCNmtW4/Hcr1siovi50pht15vgrJ90\nfuuorTgWd2h49vlQZ4pFG/EL05IWenjiaJ8kAggmuMmzuQAAA7gCh08mAodPJgAA\nAAdzc2gtcnNhAAABAQCoXoHKa7wuTiSe+skMYtlUW3NhIM1B7WxBHkbJpAFiuqfE\nioCfSuoxF9ISC1MZ+ndEa2A432iQvGZ4QL9JOoJK/fXKdPk7zgv4CsupTVIAhpt2\n3E8aYiBdQsTLmpBwYzBTTq2R3+gR2NjQtANRGj5boQxXzQuI6xNBlBYjg/ts6fOp\n0lDoSOOcReO4M2fxbRkXAuVdmgmCx81zwHvK6r6yzIAlh3f028xn0EQiyiFVjE4S\ng8WZldilGCIqquwTGXOFbs2CaS+2EoI2a1bj8dyvWyKi+LnSmG3Xm+Csn3R+66it\nOBZ3aHj2+VBnikUb8QvTkhZ6eOJonyQCCCa4ybO5AAAAAwEAAQAAAQAUw7cJElle\ncpe0naQ+6U/5ReAIagW2bEQOEeBUDOx40yFOrXAodRJF5LStMgVZLlkYMI/o47Cf\nLQUMLpwIuXUJL6HpCp0UQZibSiWM5zLGStOQiKIe1Fw+dDYWECVhHvJ+S7U/SNhz\nnwU6VAEWtwBax5VgnLKf+7HfxBYo4iWXbF25AMeUpt23kM/IVtv9dfhCxrcOfLaR\n2JoO8Fm/BybTd5RQt9pfTLn4r9vral9KN/n8lRufuFP2hXtw47tQbkeSsJ7ZZ80d\n7aXW2GK/Pfk2h9a3OkFXTIf5DPPz8mmnrlQrgTSf5MSQRImgvBACjjGnVXqpnK9I\n6BYIqdR/NCWjAAAAgQDDpA7/+6HDyrOX9loOusfatEkLVtZHmgp/kSMp8poE552P\nSe82bJzzvh8Zdhag3qIuMx1pCKn+UouPkVwtj8wWuBiFHZxGIQaoDH+6GAkVFgqz\nQ6hAv+B+H0fMR4oBwZ6JyhcNT9vwlNTLm1xzBlGXSf/cxb2zaG807ekkPuB++AAA\nAIEAyDj+wFLuHS/WmITbWSdsSJxKU1LhjbHG4TktMtxRS9q84hdZhA9CSBeJdl9J\nVv9amFF0bnKfR7ohliMPlHEvHjCiLdl4FEqHzO1AkaDdDYYoeAoScNmwmKL9JzWo\n7E3AM9cPXWknUdwU820YxmFeUy5vhJmYur5q6mdpALpWpdcAAACBANdF3IaTqWiL\nvjJpT5cuJ9hDY2wC98wC8nN5CcDV3aFSJiThJoW/djlgi9UeecCcLxMX/AdrgX7a\nWiUkkQ7PbVGD/ItTJlVgBSotNUyM//xDgEIi6svcWymtA0mMzlnh9IYOajgkVZFO\nAnjXnMjncqU2aqSH+SoRs2lL0pjC5iDvAAAAAAEC\n-----END OPENSSH PRIVATE KEY-----\n",
+            "private_key_pem": "-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEAqF6Bymu8Lk4knvrJDGLZVFtzYSDNQe1sQR5GyaQBYrqnxIqA\nn0rqMRfSEgtTGfp3RGtgON9okLxmeEC/STqCSv31ynT5O84L+ArLqU1SAIabdtxP\nGmIgXULEy5qQcGMwU06tkd/oEdjY0LQDURo+W6EMV80LiOsTQZQWI4P7bOnzqdJQ\n6EjjnEXjuDNn8W0ZFwLlXZoJgsfNc8B7yuq+ssyAJYd39NvMZ9BEIsohVYxOEoPF\nmZXYpRgiKqrsExlzhW7NgmkvthKCNmtW4/Hcr1siovi50pht15vgrJ90fuuorTgW\nd2h49vlQZ4pFG/EL05IWenjiaJ8kAggmuMmzuQIDAQABAoIBABTDtwkSWV5yl7Sd\npD7pT/lF4AhqBbZsRA4R4FQM7HjTIU6tcCh1EkXktK0yBVkuWRgwj+jjsJ8tBQwu\nnAi5dQkvoekKnRRBmJtKJYznMsZK05CIoh7UXD50NhYQJWEe8n5LtT9I2HOfBTpU\nARa3AFrHlWCcsp/7sd/EFijiJZdsXbkAx5Sm3beQz8hW2/11+ELGtw58tpHYmg7w\nWb8HJtN3lFC32l9Mufiv2+tqX0o3+fyVG5+4U/aFe3Dju1BuR5KwntlnzR3tpdbY\nYr89+TaH1rc6QVdMh/kM8/PyaaeuVCuBNJ/kxJBEiaC8EAKOMadVeqmcr0joFgip\n1H80JaMCgYEAyDj+wFLuHS/WmITbWSdsSJxKU1LhjbHG4TktMtxRS9q84hdZhA9C\nSBeJdl9JVv9amFF0bnKfR7ohliMPlHEvHjCiLdl4FEqHzO1AkaDdDYYoeAoScNmw\nmKL9JzWo7E3AM9cPXWknUdwU820YxmFeUy5vhJmYur5q6mdpALpWpdcCgYEA10Xc\nhpOpaIu+MmlPly4n2ENjbAL3zALyc3kJwNXdoVImJOEmhb92OWCL1R55wJwvExf8\nB2uBftpaJSSRDs9tUYP8i1MmVWAFKi01TIz//EOAQiLqy9xbKa0DSYzOWeH0hg5q\nOCRVkU4CeNecyOdypTZqpIf5KhGzaUvSmMLmIO8CgYACoi1Hnk+fdqed7fFspMYZ\n1mRr4CUzVelFwRjFGHzBQKlHWANHZ2P5ysV2Fx7B1C3+3uNnKH7L1LjoXqGv1CVI\ngl8/tyKLMcfDfENjJviBWwhhO9CuR065Uzt9LomAQi2LAQMkuWNZAkoMQZ0XzuQM\nuAmjdtm5axPA7YdGCS1mlQKBgQDR321I0qrlnt+13A/ZTwlPgRtr0VTuU601wLou\ngxKI1UMUz2C0Il5LQAHzq7t9eYc3cTmnrjrYhl4+OfEl5Doqr6fF2THVKEDAxsRg\ntlJXCSQA1nPcfh9ueRtsWFdRL8Yp7+HEjD/T4p7sWyCiiWqvAWdksp/LUOh97osJ\nnXGohwKBgQDDpA7/+6HDyrOX9loOusfatEkLVtZHmgp/kSMp8poE552PSe82bJzz\nvh8Zdhag3qIuMx1pCKn+UouPkVwtj8wWuBiFHZxGIQaoDH+6GAkVFgqzQ6hAv+B+\nH0fMR4oBwZ6JyhcNT9vwlNTLm1xzBlGXSf/cxb2zaG807ekkPuB++A==\n-----END RSA PRIVATE KEY-----\n",
+            "private_key_pem_pkcs8": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCoXoHKa7wuTiSe\n+skMYtlUW3NhIM1B7WxBHkbJpAFiuqfEioCfSuoxF9ISC1MZ+ndEa2A432iQvGZ4\nQL9JOoJK/fXKdPk7zgv4CsupTVIAhpt23E8aYiBdQsTLmpBwYzBTTq2R3+gR2NjQ\ntANRGj5boQxXzQuI6xNBlBYjg/ts6fOp0lDoSOOcReO4M2fxbRkXAuVdmgmCx81z\nwHvK6r6yzIAlh3f028xn0EQiyiFVjE4Sg8WZldilGCIqquwTGXOFbs2CaS+2EoI2\na1bj8dyvWyKi+LnSmG3Xm+Csn3R+66itOBZ3aHj2+VBnikUb8QvTkhZ6eOJonyQC\nCCa4ybO5AgMBAAECggEAFMO3CRJZXnKXtJ2kPulP+UXgCGoFtmxEDhHgVAzseNMh\nTq1wKHUSReS0rTIFWS5ZGDCP6OOwny0FDC6cCLl1CS+h6QqdFEGYm0oljOcyxkrT\nkIiiHtRcPnQ2FhAlYR7yfku1P0jYc58FOlQBFrcAWseVYJyyn/ux38QWKOIll2xd\nuQDHlKbdt5DPyFbb/XX4Qsa3Dny2kdiaDvBZvwcm03eUULfaX0y5+K/b62pfSjf5\n/JUbn7hT9oV7cOO7UG5HkrCe2WfNHe2l1thivz35NofWtzpBV0yH+Qzz8/Jpp65U\nK4E0n+TEkESJoLwQAo4xp1V6qZyvSOgWCKnUfzQlowKBgQDIOP7AUu4dL9aYhNtZ\nJ2xInEpTUuGNscbhOS0y3FFL2rziF1mED0JIF4l2X0lW/1qYUXRucp9HuiGWIw+U\ncS8eMKIt2XgUSofM7UCRoN0Nhih4ChJw2bCYov0nNajsTcAz1w9daSdR3BTzbRjG\nYV5TLm+EmZi6vmrqZ2kAulal1wKBgQDXRdyGk6loi74yaU+XLifYQ2NsAvfMAvJz\neQnA1d2hUiYk4SaFv3Y5YIvVHnnAnC8TF/wHa4F+2lolJJEOz21Rg/yLUyZVYAUq\nLTVMjP/8Q4BCIurL3FsprQNJjM5Z4fSGDmo4JFWRTgJ415zI53KlNmqkh/kqEbNp\nS9KYwuYg7wKBgAKiLUeeT592p53t8WykxhnWZGvgJTNV6UXBGMUYfMFAqUdYA0dn\nY/nKxXYXHsHULf7e42cofsvUuOheoa/UJUiCXz+3Iosxx8N8Q2Mm+IFbCGE70K5H\nTrlTO30uiYBCLYsBAyS5Y1kCSgxBnRfO5Ay4CaN22blrE8Dth0YJLWaVAoGBANHf\nbUjSquWe37XcD9lPCU+BG2vRVO5TrTXAui6DEojVQxTPYLQiXktAAfOru315hzdx\nOaeuOtiGXj458SXkOiqvp8XZMdUoQMDGxGC2UlcJJADWc9x+H255G2xYV1Evxinv\n4cSMP9PinuxbIKKJaq8BZ2Syn8tQ6H3uiwmdcaiHAoGBAMOkDv/7ocPKs5f2Wg66\nx9q0SQtW1keaCn+RIynymgTnnY9J7zZsnPO+Hxl2FqDeoi4zHWkIqf5Si4+RXC2P\nzBa4GIUdnEYhBqgMf7oYCRUWCrNDqEC/4H4fR8xHigHBnonKFw1P2/CU1MubXHMG\nUZdJ/9zFvbNobzTt6SQ+4H74\n-----END PRIVATE KEY-----\n",
+            "public_key_fingerprint_md5": "4d:55:78:99:df:82:21:71:e6:cc:cf:c4:b3:79:23:22",
+            "public_key_fingerprint_sha256": "SHA256:fzOIjEbvCA4sA3O4msOEW7W4wz6HdZEol+FFJp+USDE",
+            "public_key_openssh": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCoXoHKa7wuTiSe+skMYtlUW3NhIM1B7WxBHkbJpAFiuqfEioCfSuoxF9ISC1MZ+ndEa2A432iQvGZ4QL9JOoJK/fXKdPk7zgv4CsupTVIAhpt23E8aYiBdQsTLmpBwYzBTTq2R3+gR2NjQtANRGj5boQxXzQuI6xNBlBYjg/ts6fOp0lDoSOOcReO4M2fxbRkXAuVdmgmCx81zwHvK6r6yzIAlh3f028xn0EQiyiFVjE4Sg8WZldilGCIqquwTGXOFbs2CaS+2EoI2a1bj8dyvWyKi+LnSmG3Xm+Csn3R+66itOBZ3aHj2+VBnikUb8QvTkhZ6eOJonyQCCCa4ybO5\n",
+            "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqF6Bymu8Lk4knvrJDGLZ\nVFtzYSDNQe1sQR5GyaQBYrqnxIqAn0rqMRfSEgtTGfp3RGtgON9okLxmeEC/STqC\nSv31ynT5O84L+ArLqU1SAIabdtxPGmIgXULEy5qQcGMwU06tkd/oEdjY0LQDURo+\nW6EMV80LiOsTQZQWI4P7bOnzqdJQ6EjjnEXjuDNn8W0ZFwLlXZoJgsfNc8B7yuq+\nssyAJYd39NvMZ9BEIsohVYxOEoPFmZXYpRgiKqrsExlzhW7NgmkvthKCNmtW4/Hc\nr1siovi50pht15vgrJ90fuuorTgWd2h49vlQZ4pFG/EL05IWenjiaJ8kAggmuMmz\nuQIDAQAB\n-----END PUBLIC KEY-----\n",
+            "rsa_bits": 2048
+          },
+          "sensitive_attributes": [
+            [
+              {
+                "type": "get_attr",
+                "value": "private_key_openssh"
+              }
+            ],
+            [
+              {
+                "type": "get_attr",
+                "value": "private_key_pem"
+              }
+            ],
+            [
+              {
+                "type": "get_attr",
+                "value": "private_key_pem_pkcs8"
+              }
+            ]
+          ],
+          "identity_schema_version": 0,
+          "create_before_destroy": true
+        }
+      ]
+    },
+    {
+      "module": "module.alb",
+      "mode": "managed",
+      "type": "tls_self_signed_cert",
+      "name": "self_signed",
+      "provider": "provider[\"registry.terraform.io/hashicorp/tls\"]",
+      "instances": [
+        {
+          "index_key": 0,
+          "schema_version": 0,
+          "attributes": {
+            "allowed_uses": [
+              "key_encipherment",
+              "digital_signature",
+              "server_auth"
+            ],
+            "cert_pem": "-----BEGIN CERTIFICATE-----\nMIIDOjCCAiKgAwIBAgIQd6Fi15ZYsFNOXwp1t904fzANBgkqhkiG9w0BAQsFADAw\nMRUwEwYDVQQKEwxrZXljbG9hay1kZXYxFzAVBgNVBAMTDmtleWNsb2FrLmxvY2Fs\nMB4XDTI2MDcyMDIxMzUzM1oXDTI3MDcyMDIxMzUzM1owMDEVMBMGA1UEChMMa2V5\nY2xvYWstZGV2MRcwFQYDVQQDEw5rZXljbG9hay5sb2NhbDCCASIwDQYJKoZIhvcN\nAQEBBQADggEPADCCAQoCggEBAKhegcprvC5OJJ76yQxi2VRbc2EgzUHtbEEeRsmk\nAWK6p8SKgJ9K6jEX0hILUxn6d0RrYDjfaJC8ZnhAv0k6gkr99cp0+TvOC/gKy6lN\nUgCGm3bcTxpiIF1CxMuakHBjMFNOrZHf6BHY2NC0A1EaPluhDFfNC4jrE0GUFiOD\n+2zp86nSUOhI45xF47gzZ/FtGRcC5V2aCYLHzXPAe8rqvrLMgCWHd/TbzGfQRCLK\nIVWMThKDxZmV2KUYIiqq7BMZc4VuzYJpL7YSgjZrVuPx3K9bIqL4udKYbdeb4Kyf\ndH7rqK04FndoePb5UGeKRRvxC9OSFnp44mifJAIIJrjJs7kCAwEAAaNQME4wDgYD\nVR0PAQH/BAQDAgWgMBMGA1UdJQQMMAoGCCsGAQUFBwMBMAwGA1UdEwEB/wQCMAAw\nGQYDVR0RBBIwEIIOa2V5Y2xvYWsubG9jYWwwDQYJKoZIhvcNAQELBQADggEBAAtl\npH3Hr5QaPAbNWPCUPFxfAIQm5SOOwSAx8gqugSRSbn6sZg3wB1DTMfjR4peC4jnH\nu3zNxQ33XxyHIoodyi9Bb27xKl2FjC/El3mSrS2lAOyEZGQc8oTI50tWnXcdW8kQ\nUTb55Y8h+KMj0BDJTGfzd6bI6nmJcru0ptAX3qplPI6+XNLFHeoz37UTDxKQjngm\ndLSFKm+UyWGcsExoJhpPE8Mo0EfGYTb5gkpwELpVGhu6JZgAhWDi9r9gXJIvislb\nJFEuXCjWEOxPwELWKKFX1lB24pmhrcj0FUJgYKHFsMTVduHPj51cfs+/J/yhE9Q0\nPSBb8JshY3doULK1+xs=\n-----END CERTIFICATE-----\n",
+            "dns_names": [
+              "keycloak.local"
+            ],
+            "early_renewal_hours": 0,
+            "id": "159016096049355164172836414334940559487",
+            "ip_addresses": null,
+            "is_ca_certificate": false,
+            "key_algorithm": "RSA",
+            "max_path_length": null,
+            "private_key_pem": "-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEAqF6Bymu8Lk4knvrJDGLZVFtzYSDNQe1sQR5GyaQBYrqnxIqA\nn0rqMRfSEgtTGfp3RGtgON9okLxmeEC/STqCSv31ynT5O84L+ArLqU1SAIabdtxP\nGmIgXULEy5qQcGMwU06tkd/oEdjY0LQDURo+W6EMV80LiOsTQZQWI4P7bOnzqdJQ\n6EjjnEXjuDNn8W0ZFwLlXZoJgsfNc8B7yuq+ssyAJYd39NvMZ9BEIsohVYxOEoPF\nmZXYpRgiKqrsExlzhW7NgmkvthKCNmtW4/Hcr1siovi50pht15vgrJ90fuuorTgW\nd2h49vlQZ4pFG/EL05IWenjiaJ8kAggmuMmzuQIDAQABAoIBABTDtwkSWV5yl7Sd\npD7pT/lF4AhqBbZsRA4R4FQM7HjTIU6tcCh1EkXktK0yBVkuWRgwj+jjsJ8tBQwu\nnAi5dQkvoekKnRRBmJtKJYznMsZK05CIoh7UXD50NhYQJWEe8n5LtT9I2HOfBTpU\nARa3AFrHlWCcsp/7sd/EFijiJZdsXbkAx5Sm3beQz8hW2/11+ELGtw58tpHYmg7w\nWb8HJtN3lFC32l9Mufiv2+tqX0o3+fyVG5+4U/aFe3Dju1BuR5KwntlnzR3tpdbY\nYr89+TaH1rc6QVdMh/kM8/PyaaeuVCuBNJ/kxJBEiaC8EAKOMadVeqmcr0joFgip\n1H80JaMCgYEAyDj+wFLuHS/WmITbWSdsSJxKU1LhjbHG4TktMtxRS9q84hdZhA9C\nSBeJdl9JVv9amFF0bnKfR7ohliMPlHEvHjCiLdl4FEqHzO1AkaDdDYYoeAoScNmw\nmKL9JzWo7E3AM9cPXWknUdwU820YxmFeUy5vhJmYur5q6mdpALpWpdcCgYEA10Xc\nhpOpaIu+MmlPly4n2ENjbAL3zALyc3kJwNXdoVImJOEmhb92OWCL1R55wJwvExf8\nB2uBftpaJSSRDs9tUYP8i1MmVWAFKi01TIz//EOAQiLqy9xbKa0DSYzOWeH0hg5q\nOCRVkU4CeNecyOdypTZqpIf5KhGzaUvSmMLmIO8CgYACoi1Hnk+fdqed7fFspMYZ\n1mRr4CUzVelFwRjFGHzBQKlHWANHZ2P5ysV2Fx7B1C3+3uNnKH7L1LjoXqGv1CVI\ngl8/tyKLMcfDfENjJviBWwhhO9CuR065Uzt9LomAQi2LAQMkuWNZAkoMQZ0XzuQM\nuAmjdtm5axPA7YdGCS1mlQKBgQDR321I0qrlnt+13A/ZTwlPgRtr0VTuU601wLou\ngxKI1UMUz2C0Il5LQAHzq7t9eYc3cTmnrjrYhl4+OfEl5Doqr6fF2THVKEDAxsRg\ntlJXCSQA1nPcfh9ueRtsWFdRL8Yp7+HEjD/T4p7sWyCiiWqvAWdksp/LUOh97osJ\nnXGohwKBgQDDpA7/+6HDyrOX9loOusfatEkLVtZHmgp/kSMp8poE552PSe82bJzz\nvh8Zdhag3qIuMx1pCKn+UouPkVwtj8wWuBiFHZxGIQaoDH+6GAkVFgqzQ6hAv+B+\nH0fMR4oBwZ6JyhcNT9vwlNTLm1xzBlGXSf/cxb2zaG807ekkPuB++A==\n-----END RSA PRIVATE KEY-----\n",
+            "ready_for_renewal": false,
+            "set_authority_key_id": false,
+            "set_subject_key_id": false,
+            "subject": [
+              {
+                "common_name": "keycloak.local",
+                "country": null,
+                "email_address": null,
+                "locality": null,
+                "organization": "keycloak-dev",
+                "organizational_unit": null,
+                "postal_code": null,
+                "province": null,
+                "serial_number": null,
+                "street_address": null
+              }
+            ],
+            "uris": null,
+            "validity_end_time": "2027-07-20T16:35:33.935437-05:00",
+            "validity_period_hours": 8760,
+            "validity_start_time": "2026-07-20T16:35:33.935437-05:00"
+          },
+          "sensitive_attributes": [
+            [
+              {
+                "type": "get_attr",
+                "value": "private_key_pem"
+              }
+            ]
+          ],
+          "identity_schema_version": 0,
+          "dependencies": [
+            "module.alb.tls_private_key.self_signed"
+          ],
+          "create_before_destroy": true
+        }
+      ]
+    },
+    {
+      "module": "module.compute",
+      "mode": "data",
+      "type": "aws_ami",
+      "name": "amazon_linux",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "architecture": "x86_64",
+            "arn": "arn:aws:ec2:us-east-1::image/ami-0b826bb6d96d2afe4",
+            "block_device_mappings": [
+              {
+                "device_name": "/dev/xvda",
+                "ebs": {
+                  "delete_on_termination": "true",
+                  "encrypted": "false",
+                  "iops": "3000",
+                  "snapshot_id": "snap-0edf3b59004b04461",
+                  "throughput": "125",
+                  "volume_initialization_rate": "0",
+                  "volume_size": "8",
+                  "volume_type": "gp3"
+                },
+                "no_device": "",
+                "virtual_name": ""
+              }
+            ],
+            "boot_mode": "uefi-preferred",
+            "creation_date": "2026-07-15T20:35:08.000Z",
+            "deprecation_time": "2026-10-13T20:42:00.000Z",
+            "description": "Amazon Linux 2023 AMI 2023.12.20260720.0 x86_64 HVM kernel-6.18",
+            "ena_support": true,
+            "executable_users": null,
+            "filter": [
+              {
+                "name": "name",
+                "values": [
+                  "al2023-ami-2023.*-x86_64"
+                ]
+              },
+              {
+                "name": "state",
+                "values": [
+                  "available"
+                ]
+              },
+              {
+                "name": "virtualization-type",
+                "values": [
+                  "hvm"
+                ]
+              }
+            ],
+            "hypervisor": "xen",
+            "id": "ami-0b826bb6d96d2afe4",
+            "image_id": "ami-0b826bb6d96d2afe4",
+            "image_location": "amazon/al2023-ami-2023.12.20260720.0-kernel-6.18-x86_64",
+            "image_owner_alias": "amazon",
+            "image_type": "machine",
+            "imds_support": "v2.0",
+            "include_deprecated": false,
+            "kernel_id": "",
+            "last_launched_time": "",
+            "most_recent": true,
+            "name": "al2023-ami-2023.12.20260720.0-kernel-6.18-x86_64",
+            "name_regex": null,
+            "owner_id": "137112412989",
+            "owners": [
+              "amazon"
+            ],
+            "platform": "",
+            "platform_details": "Linux/UNIX",
+            "product_codes": [],
+            "public": true,
+            "ramdisk_id": "",
+            "root_device_name": "/dev/xvda",
+            "root_device_type": "ebs",
+            "root_snapshot_id": "snap-0edf3b59004b04461",
+            "sriov_net_support": "simple",
+            "state": "available",
+            "state_reason": {
+              "code": "UNSET",
+              "message": "UNSET"
+            },
+            "tags": {},
+            "timeouts": null,
+            "tpm_support": "",
+            "uefi_data": null,
+            "usage_operation": "RunInstances",
+            "virtualization_type": "hvm"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0
+        }
+      ]
+    },
+    {
+      "module": "module.compute",
+      "mode": "data",
+      "type": "aws_caller_identity",
+      "name": "current",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "account_id": "406207085797",
+            "arn": "arn:aws:iam::406207085797:user/zactonicsuser01",
+            "id": "406207085797",
+            "user_id": "AIDAV5E6UHTS7YQEIXP43"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0
+        }
+      ]
+    },
+    {
+      "module": "module.compute",
+      "mode": "data",
+      "type": "aws_iam_policy_document",
+      "name": "assume_role",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "id": "2851119427",
+            "json": "{\n  \"Version\": \"2012-10-17\",\n  \"Statement\": [\n    {\n      \"Effect\": \"Allow\",\n      \"Action\": \"sts:AssumeRole\",\n      \"Principal\": {\n        \"Service\": \"ec2.amazonaws.com\"\n      }\n    }\n  ]\n}",
+            "minified_json": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Action\":\"sts:AssumeRole\",\"Principal\":{\"Service\":\"ec2.amazonaws.com\"}}]}",
+            "override_json": null,
+            "override_policy_documents": null,
+            "policy_id": null,
+            "source_json": null,
+            "source_policy_documents": null,
+            "statement": [
+              {
+                "actions": [
+                  "sts:AssumeRole"
+                ],
+                "condition": [],
+                "effect": "Allow",
+                "not_actions": [],
+                "not_principals": [],
+                "not_resources": [],
+                "principals": [
+                  {
+                    "identifiers": [
+                      "ec2.amazonaws.com"
+                    ],
+                    "type": "Service"
+                  }
+                ],
+                "resources": [],
+                "sid": ""
+              }
+            ],
+            "version": "2012-10-17"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0
+        }
+      ]
+    },
+    {
+      "module": "module.compute",
+      "mode": "data",
+      "type": "aws_iam_policy_document",
+      "name": "keycloak_permissions",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "id": "2312392732",
+            "json": "{\n  \"Version\": \"2012-10-17\",\n  \"Statement\": [\n    {\n      \"Sid\": \"ReadKeycloakAdminSecret\",\n      \"Effect\": \"Allow\",\n      \"Action\": [\n        \"secretsmanager:GetSecretValue\",\n        \"secretsmanager:DescribeSecret\"\n      ],\n      \"Resource\": \"arn:aws:secretsmanager:us-east-1:406207085797:secret:keycloak-dev-keycloak-admin-2026072021354806850000000c-we8ZKf\"\n    },\n    {\n      \"Sid\": \"UseKmsKeys\",\n      \"Effect\": \"Allow\",\n      \"Action\": [\n        \"kms:GenerateDataKey\",\n        \"kms:DescribeKey\",\n        \"kms:Decrypt\"\n      ],\n      \"Resource\": [\n        \"arn:aws:kms:us-east-1:406207085797:key/afbe7fc4-9f79-4f4b-8d92-b531f24f0963\",\n        \"arn:aws:kms:us-east-1:406207085797:key/67b2de73-b06a-4a63-ba24-f23809880aa6\"\n      ]\n    },\n    {\n      \"Sid\": \"WriteCloudWatchLogs\",\n      \"Effect\": \"Allow\",\n      \"Action\": [\n        \"logs:PutLogEvents\",\n        \"logs:DescribeLogStreams\",\n        \"logs:CreateLogStream\"\n      ],\n      \"Resource\": \"arn:aws:logs:us-east-1:406207085797:log-group:/aws/ec2/keycloak-dev*\"\n    },\n    {\n      \"Sid\": \"ReadRealmFileFromS3\",\n      \"Effect\": \"Allow\",\n      \"Action\": \"s3:GetObject\",\n      \"Resource\": \"arn:aws:s3:::keycloak-dev-realm-20260720213534085700000002/*\"\n    }\n  ]\n}",
+            "minified_json": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Sid\":\"ReadKeycloakAdminSecret\",\"Effect\":\"Allow\",\"Action\":[\"secretsmanager:GetSecretValue\",\"secretsmanager:DescribeSecret\"],\"Resource\":\"arn:aws:secretsmanager:us-east-1:406207085797:secret:keycloak-dev-keycloak-admin-2026072021354806850000000c-we8ZKf\"},{\"Sid\":\"UseKmsKeys\",\"Effect\":\"Allow\",\"Action\":[\"kms:GenerateDataKey\",\"kms:DescribeKey\",\"kms:Decrypt\"],\"Resource\":[\"arn:aws:kms:us-east-1:406207085797:key/afbe7fc4-9f79-4f4b-8d92-b531f24f0963\",\"arn:aws:kms:us-east-1:406207085797:key/67b2de73-b06a-4a63-ba24-f23809880aa6\"]},{\"Sid\":\"WriteCloudWatchLogs\",\"Effect\":\"Allow\",\"Action\":[\"logs:PutLogEvents\",\"logs:DescribeLogStreams\",\"logs:CreateLogStream\"],\"Resource\":\"arn:aws:logs:us-east-1:406207085797:log-group:/aws/ec2/keycloak-dev*\"},{\"Sid\":\"ReadRealmFileFromS3\",\"Effect\":\"Allow\",\"Action\":\"s3:GetObject\",\"Resource\":\"arn:aws:s3:::keycloak-dev-realm-20260720213534085700000002/*\"}]}",
+            "override_json": null,
+            "override_policy_documents": null,
+            "policy_id": null,
+            "source_json": null,
+            "source_policy_documents": null,
+            "statement": [
+              {
+                "actions": [
+                  "secretsmanager:DescribeSecret",
+                  "secretsmanager:GetSecretValue"
+                ],
+                "condition": [],
+                "effect": "Allow",
+                "not_actions": [],
+                "not_principals": [],
+                "not_resources": [],
+                "principals": [],
+                "resources": [
+                  "arn:aws:secretsmanager:us-east-1:406207085797:secret:keycloak-dev-keycloak-admin-2026072021354806850000000c-we8ZKf"
+                ],
+                "sid": "ReadKeycloakAdminSecret"
+              },
+              {
+                "actions": [
+                  "kms:Decrypt",
+                  "kms:DescribeKey",
+                  "kms:GenerateDataKey"
+                ],
+                "condition": [],
+                "effect": "Allow",
+                "not_actions": [],
+                "not_principals": [],
+                "not_resources": [],
+                "principals": [],
+                "resources": [
+                  "arn:aws:kms:us-east-1:406207085797:key/67b2de73-b06a-4a63-ba24-f23809880aa6",
+                  "arn:aws:kms:us-east-1:406207085797:key/afbe7fc4-9f79-4f4b-8d92-b531f24f0963"
+                ],
+                "sid": "UseKmsKeys"
+              },
+              {
+                "actions": [
+                  "logs:CreateLogStream",
+                  "logs:DescribeLogStreams",
+                  "logs:PutLogEvents"
+                ],
+                "condition": [],
+                "effect": "Allow",
+                "not_actions": [],
+                "not_principals": [],
+                "not_resources": [],
+                "principals": [],
+                "resources": [
+                  "arn:aws:logs:us-east-1:406207085797:log-group:/aws/ec2/keycloak-dev*"
+                ],
+                "sid": "WriteCloudWatchLogs"
+              },
+              {
+                "actions": [
+                  "s3:GetObject"
+                ],
+                "condition": [],
+                "effect": "Allow",
+                "not_actions": [],
+                "not_principals": [],
+                "not_resources": [],
+                "principals": [],
+                "resources": [
+                  "arn:aws:s3:::keycloak-dev-realm-20260720213534085700000002/*"
+                ],
+                "sid": "ReadRealmFileFromS3"
+              }
+            ],
+            "version": "2012-10-17"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0
+        }
+      ]
+    },
+    {
+      "module": "module.compute",
+      "mode": "data",
+      "type": "aws_region",
+      "name": "current",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "description": "US East (N. Virginia)",
+            "endpoint": "ec2.us-east-1.amazonaws.com",
+            "id": "us-east-1",
+            "name": "us-east-1"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0
+        }
+      ]
+    },
+    {
+      "module": "module.compute",
+      "mode": "managed",
+      "type": "aws_cloudwatch_log_group",
+      "name": "keycloak",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "index_key": 0,
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:logs:us-east-1:406207085797:log-group:/aws/ec2/keycloak-dev/keycloak",
+            "id": "/aws/ec2/keycloak-dev/keycloak",
+            "kms_key_id": "",
+            "log_group_class": "STANDARD",
+            "name": "/aws/ec2/keycloak-dev/keycloak",
+            "name_prefix": "",
+            "retention_in_days": 30,
+            "skip_destroy": false,
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-keycloak-logs",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-keycloak-logs",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            }
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA=="
+        }
+      ]
+    },
+    {
+      "module": "module.compute",
+      "mode": "managed",
+      "type": "aws_iam_instance_profile",
+      "name": "keycloak",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:iam::406207085797:instance-profile/keycloak-dev-keycloak-20260720213534563500000003",
+            "create_date": "2026-07-20T21:35:34Z",
+            "id": "keycloak-dev-keycloak-20260720213534563500000003",
+            "name": "keycloak-dev-keycloak-20260720213534563500000003",
+            "name_prefix": "keycloak-dev-keycloak-",
+            "path": "/",
+            "role": "keycloak-dev-keycloak-20260720213534084500000001",
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-keycloak-profile",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-keycloak-profile",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "unique_id": "AIPAV5E6UHTS2LJ265V4E"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "module.compute.aws_iam_role.keycloak",
+            "module.compute.data.aws_iam_policy_document.assume_role"
+          ],
+          "create_before_destroy": true
+        }
+      ]
+    },
+    {
+      "module": "module.compute",
+      "mode": "managed",
+      "type": "aws_iam_role",
+      "name": "keycloak",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:iam::406207085797:role/keycloak-dev-keycloak-20260720213534084500000001",
+            "assume_role_policy": "{\"Statement\":[{\"Action\":\"sts:AssumeRole\",\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"ec2.amazonaws.com\"}}],\"Version\":\"2012-10-17\"}",
+            "create_date": "2026-07-20T21:35:34Z",
+            "description": "Role worn by the Keycloak EC2 instance",
+            "force_detach_policies": false,
+            "id": "keycloak-dev-keycloak-20260720213534084500000001",
+            "inline_policy": [],
+            "managed_policy_arns": [],
+            "max_session_duration": 3600,
+            "name": "keycloak-dev-keycloak-20260720213534084500000001",
+            "name_prefix": "keycloak-dev-keycloak-",
+            "path": "/",
+            "permissions_boundary": "",
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-keycloak-role",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-keycloak-role",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "unique_id": "AROAV5E6UHTS73DZ2JXWG"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "module.compute.data.aws_iam_policy_document.assume_role"
+          ],
+          "create_before_destroy": true
+        }
+      ]
+    },
+    {
+      "module": "module.compute",
+      "mode": "managed",
+      "type": "aws_iam_role_policy",
+      "name": "keycloak",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "id": "keycloak-dev-keycloak-20260720213534084500000001:keycloak-dev-keycloak-2026072021354849630000000f",
+            "name": "keycloak-dev-keycloak-2026072021354849630000000f",
+            "name_prefix": "keycloak-dev-keycloak-",
+            "policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Action\":[\"secretsmanager:GetSecretValue\",\"secretsmanager:DescribeSecret\"],\"Effect\":\"Allow\",\"Resource\":\"arn:aws:secretsmanager:us-east-1:406207085797:secret:keycloak-dev-keycloak-admin-2026072021354806850000000c-we8ZKf\",\"Sid\":\"ReadKeycloakAdminSecret\"},{\"Action\":[\"kms:GenerateDataKey\",\"kms:DescribeKey\",\"kms:Decrypt\"],\"Effect\":\"Allow\",\"Resource\":[\"arn:aws:kms:us-east-1:406207085797:key/afbe7fc4-9f79-4f4b-8d92-b531f24f0963\",\"arn:aws:kms:us-east-1:406207085797:key/67b2de73-b06a-4a63-ba24-f23809880aa6\"],\"Sid\":\"UseKmsKeys\"},{\"Action\":[\"logs:PutLogEvents\",\"logs:DescribeLogStreams\",\"logs:CreateLogStream\"],\"Effect\":\"Allow\",\"Resource\":\"arn:aws:logs:us-east-1:406207085797:log-group:/aws/ec2/keycloak-dev*\",\"Sid\":\"WriteCloudWatchLogs\"},{\"Action\":\"s3:GetObject\",\"Effect\":\"Allow\",\"Resource\":\"arn:aws:s3:::keycloak-dev-realm-20260720213534085700000002/*\",\"Sid\":\"ReadRealmFileFromS3\"}]}",
+            "role": "keycloak-dev-keycloak-20260720213534084500000001"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "module.compute.aws_iam_role.keycloak",
+            "module.compute.aws_s3_bucket.realm",
+            "module.compute.aws_secretsmanager_secret.keycloak_admin",
+            "module.compute.data.aws_caller_identity.current",
+            "module.compute.data.aws_iam_policy_document.assume_role",
+            "module.compute.data.aws_iam_policy_document.keycloak_permissions",
+            "module.compute.data.aws_region.current",
+            "module.kms.aws_kms_key.ebs",
+            "module.kms.aws_kms_key.secrets",
+            "module.kms.data.aws_caller_identity.current",
+            "module.kms.data.aws_region.current"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.compute",
+      "mode": "managed",
+      "type": "aws_iam_role_policy_attachment",
+      "name": "cloudwatch",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "index_key": 0,
+          "schema_version": 0,
+          "attributes": {
+            "id": "keycloak-dev-keycloak-20260720213534084500000001-20260720213534665700000004",
+            "policy_arn": "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy",
+            "role": "keycloak-dev-keycloak-20260720213534084500000001"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "module.compute.aws_iam_role.keycloak",
+            "module.compute.data.aws_iam_policy_document.assume_role"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.compute",
+      "mode": "managed",
+      "type": "aws_iam_role_policy_attachment",
+      "name": "ssm",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "id": "keycloak-dev-keycloak-20260720213534084500000001-20260720213534761800000005",
+            "policy_arn": "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore",
+            "role": "keycloak-dev-keycloak-20260720213534084500000001"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "module.compute.aws_iam_role.keycloak",
+            "module.compute.data.aws_iam_policy_document.assume_role"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.compute",
+      "mode": "managed",
+      "type": "aws_s3_bucket",
+      "name": "realm",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "acceleration_status": "",
+            "acl": null,
+            "arn": "arn:aws:s3:::keycloak-dev-realm-20260720213534085700000002",
+            "bucket": "keycloak-dev-realm-20260720213534085700000002",
+            "bucket_domain_name": "keycloak-dev-realm-20260720213534085700000002.s3.amazonaws.com",
+            "bucket_prefix": "keycloak-dev-realm-",
+            "bucket_regional_domain_name": "keycloak-dev-realm-20260720213534085700000002.s3.us-east-1.amazonaws.com",
+            "cors_rule": [],
+            "force_destroy": true,
+            "grant": [
+              {
+                "id": "28647459202e15eb8ed568f098a579320647368025da55fe3e692a825d73cacb",
+                "permissions": [
+                  "FULL_CONTROL"
+                ],
+                "type": "CanonicalUser",
+                "uri": ""
+              }
+            ],
+            "hosted_zone_id": "Z3AQBSTGFYJSTF",
+            "id": "keycloak-dev-realm-20260720213534085700000002",
+            "lifecycle_rule": [],
+            "logging": [],
+            "object_lock_configuration": [],
+            "object_lock_enabled": false,
+            "policy": "",
+            "region": "us-east-1",
+            "replication_configuration": [],
+            "request_payer": "BucketOwner",
+            "server_side_encryption_configuration": [
+              {
+                "rule": [
+                  {
+                    "apply_server_side_encryption_by_default": [
+                      {
+                        "kms_master_key_id": "",
+                        "sse_algorithm": "AES256"
+                      }
+                    ],
+                    "bucket_key_enabled": false
+                  }
+                ]
+              }
+            ],
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-realm-bucket",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-realm-bucket",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "timeouts": null,
+            "versioning": [
+              {
+                "enabled": false,
+                "mfa_delete": false
+              }
+            ],
+            "website": [],
+            "website_domain": null,
+            "website_endpoint": null
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxMjAwMDAwMDAwMDAwLCJkZWxldGUiOjM2MDAwMDAwMDAwMDAsInJlYWQiOjEyMDAwMDAwMDAwMDAsInVwZGF0ZSI6MTIwMDAwMDAwMDAwMH19",
+          "create_before_destroy": true
+        }
+      ]
+    },
+    {
+      "module": "module.compute",
+      "mode": "managed",
+      "type": "aws_s3_bucket_public_access_block",
+      "name": "realm",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "block_public_acls": true,
+            "block_public_policy": true,
+            "bucket": "keycloak-dev-realm-20260720213534085700000002",
+            "id": "keycloak-dev-realm-20260720213534085700000002",
+            "ignore_public_acls": true,
+            "restrict_public_buckets": true
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "module.compute.aws_s3_bucket.realm"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.compute",
+      "mode": "managed",
+      "type": "aws_s3_bucket_server_side_encryption_configuration",
+      "name": "realm",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "bucket": "keycloak-dev-realm-20260720213534085700000002",
+            "expected_bucket_owner": "",
+            "id": "keycloak-dev-realm-20260720213534085700000002",
+            "rule": [
+              {
+                "apply_server_side_encryption_by_default": [
+                  {
+                    "kms_master_key_id": "arn:aws:kms:us-east-1:406207085797:key/afbe7fc4-9f79-4f4b-8d92-b531f24f0963",
+                    "sse_algorithm": "aws:kms"
+                  }
+                ],
+                "bucket_key_enabled": true
+              }
+            ]
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "module.compute.aws_s3_bucket.realm",
+            "module.kms.aws_kms_key.secrets",
+            "module.kms.data.aws_caller_identity.current"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.compute",
+      "mode": "managed",
+      "type": "aws_s3_bucket_versioning",
+      "name": "realm",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "bucket": "keycloak-dev-realm-20260720213534085700000002",
+            "expected_bucket_owner": "",
+            "id": "keycloak-dev-realm-20260720213534085700000002",
+            "mfa": null,
+            "versioning_configuration": [
+              {
+                "mfa_delete": "",
+                "status": "Enabled"
+              }
+            ]
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "module.compute.aws_s3_bucket.realm"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.compute",
+      "mode": "managed",
+      "type": "aws_s3_object",
+      "name": "realm",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": []
+    },
+    {
+      "module": "module.compute",
+      "mode": "managed",
+      "type": "aws_secretsmanager_secret",
+      "name": "keycloak_admin",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:secretsmanager:us-east-1:406207085797:secret:keycloak-dev-keycloak-admin-2026072021354806850000000c-we8ZKf",
+            "description": "Keycloak bootstrap admin credentials for keycloak-dev",
+            "force_overwrite_replica_secret": false,
+            "id": "arn:aws:secretsmanager:us-east-1:406207085797:secret:keycloak-dev-keycloak-admin-2026072021354806850000000c-we8ZKf",
+            "kms_key_id": "arn:aws:kms:us-east-1:406207085797:key/afbe7fc4-9f79-4f4b-8d92-b531f24f0963",
+            "name": "keycloak-dev-keycloak-admin-2026072021354806850000000c",
+            "name_prefix": "keycloak-dev-keycloak-admin-",
+            "policy": "",
+            "recovery_window_in_days": 7,
+            "replica": [],
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-keycloak-admin-secret",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-keycloak-admin-secret",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            }
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "module.kms.aws_kms_key.secrets",
+            "module.kms.data.aws_caller_identity.current"
+          ],
+          "create_before_destroy": true
+        }
+      ]
+    },
+    {
+      "module": "module.compute",
+      "mode": "managed",
+      "type": "aws_secretsmanager_secret_version",
+      "name": "keycloak_admin",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:secretsmanager:us-east-1:406207085797:secret:keycloak-dev-keycloak-admin-2026072021354806850000000c-we8ZKf",
+            "has_secret_string_wo": null,
+            "id": "arn:aws:secretsmanager:us-east-1:406207085797:secret:keycloak-dev-keycloak-admin-2026072021354806850000000c-we8ZKf|terraform-2026072021354848810000000e",
+            "secret_binary": "",
+            "secret_id": "arn:aws:secretsmanager:us-east-1:406207085797:secret:keycloak-dev-keycloak-admin-2026072021354806850000000c-we8ZKf",
+            "secret_string": "{\"password\":\"mVtM?G5[5QRKWGwK3xzeZ]=z)vp%!Rhb\",\"username\":\"kcadmin\"}",
+            "secret_string_wo": null,
+            "secret_string_wo_version": null,
+            "version_id": "terraform-2026072021354848810000000e",
+            "version_stages": [
+              "AWSCURRENT"
+            ]
+          },
+          "sensitive_attributes": [
+            [
+              {
+                "type": "get_attr",
+                "value": "secret_binary"
+              }
+            ],
+            [
+              {
+                "type": "get_attr",
+                "value": "secret_string"
+              }
+            ],
+            [
+              {
+                "type": "get_attr",
+                "value": "secret_string_wo"
+              }
+            ]
+          ],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "module.compute.aws_secretsmanager_secret.keycloak_admin",
+            "module.compute.random_password.keycloak_admin",
+            "module.kms.aws_kms_key.secrets",
+            "module.kms.data.aws_caller_identity.current"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.compute",
+      "mode": "managed",
+      "type": "random_password",
+      "name": "keycloak_admin",
+      "provider": "provider[\"registry.terraform.io/hashicorp/random\"]",
+      "instances": [
+        {
+          "index_key": 0,
+          "schema_version": 3,
+          "attributes": {
+            "bcrypt_hash": "$2a$10$nSCtEyUbAvCnUoNOA5aaeuROfY/qHseYYfGWGVRqCL9V.LyvejuNC",
+            "id": "none",
+            "keepers": null,
+            "length": 32,
+            "lower": true,
+            "min_lower": 2,
+            "min_numeric": 2,
+            "min_special": 2,
+            "min_upper": 2,
+            "number": true,
+            "numeric": true,
+            "override_special": "!#%\u0026*()-_=+[]{}\u003c\u003e:?",
+            "result": "mVtM?G5[5QRKWGwK3xzeZ]=z)vp%!Rhb",
+            "special": true,
+            "upper": true
+          },
+          "sensitive_attributes": [
+            [
+              {
+                "type": "get_attr",
+                "value": "bcrypt_hash"
+              }
+            ],
+            [
+              {
+                "type": "get_attr",
+                "value": "result"
+              }
+            ]
+          ],
+          "identity_schema_version": 0,
+          "create_before_destroy": true
+        }
+      ]
+    },
+    {
+      "module": "module.kms",
+      "mode": "data",
+      "type": "aws_caller_identity",
+      "name": "current",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "account_id": "406207085797",
+            "arn": "arn:aws:iam::406207085797:user/zactonicsuser01",
+            "id": "406207085797",
+            "user_id": "AIDAV5E6UHTS7YQEIXP43"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0
+        }
+      ]
+    },
+    {
+      "module": "module.kms",
+      "mode": "data",
+      "type": "aws_region",
+      "name": "current",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "description": "US East (N. Virginia)",
+            "endpoint": "ec2.us-east-1.amazonaws.com",
+            "id": "us-east-1",
+            "name": "us-east-1"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0
+        }
+      ]
+    },
+    {
+      "module": "module.kms",
+      "mode": "managed",
+      "type": "aws_kms_alias",
+      "name": "ebs",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:kms:us-east-1:406207085797:alias/keycloak-dev-ebs",
+            "id": "alias/keycloak-dev-ebs",
+            "name": "alias/keycloak-dev-ebs",
+            "name_prefix": "",
+            "target_key_arn": "arn:aws:kms:us-east-1:406207085797:key/67b2de73-b06a-4a63-ba24-f23809880aa6",
+            "target_key_id": "67b2de73-b06a-4a63-ba24-f23809880aa6"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "module.kms.aws_kms_key.ebs",
+            "module.kms.data.aws_caller_identity.current",
+            "module.kms.data.aws_region.current"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.kms",
+      "mode": "managed",
+      "type": "aws_kms_alias",
+      "name": "secrets",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:kms:us-east-1:406207085797:alias/keycloak-dev-secrets",
+            "id": "alias/keycloak-dev-secrets",
+            "name": "alias/keycloak-dev-secrets",
+            "name_prefix": "",
+            "target_key_arn": "arn:aws:kms:us-east-1:406207085797:key/afbe7fc4-9f79-4f4b-8d92-b531f24f0963",
+            "target_key_id": "afbe7fc4-9f79-4f4b-8d92-b531f24f0963"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "module.kms.aws_kms_key.secrets",
+            "module.kms.data.aws_caller_identity.current"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.kms",
+      "mode": "managed",
+      "type": "aws_kms_key",
+      "name": "ebs",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:kms:us-east-1:406207085797:key/67b2de73-b06a-4a63-ba24-f23809880aa6",
+            "bypass_policy_lockout_safety_check": false,
+            "custom_key_store_id": "",
+            "customer_master_key_spec": "SYMMETRIC_DEFAULT",
+            "deletion_window_in_days": 7,
+            "description": "keycloak-dev - encrypts the EBS root volume of the Keycloak server",
+            "enable_key_rotation": true,
+            "id": "67b2de73-b06a-4a63-ba24-f23809880aa6",
+            "is_enabled": true,
+            "key_id": "67b2de73-b06a-4a63-ba24-f23809880aa6",
+            "key_usage": "ENCRYPT_DECRYPT",
+            "multi_region": false,
+            "policy": "{\"Statement\":[{\"Action\":\"kms:*\",\"Effect\":\"Allow\",\"Principal\":{\"AWS\":\"arn:aws:iam::406207085797:root\"},\"Resource\":\"*\",\"Sid\":\"EnableRootAccountManagement\"},{\"Action\":[\"kms:Encrypt\",\"kms:Decrypt\",\"kms:ReEncrypt*\",\"kms:GenerateDataKey*\",\"kms:DescribeKey\",\"kms:CreateGrant\"],\"Condition\":{\"StringEquals\":{\"kms:CallerAccount\":\"406207085797\",\"kms:ViaService\":\"ec2.us-east-1.amazonaws.com\"}},\"Effect\":\"Allow\",\"Principal\":{\"Service\":[\"ec2.amazonaws.com\"]},\"Resource\":\"*\",\"Sid\":\"AllowServiceUseOfTheKey\"}],\"Version\":\"2012-10-17\"}",
+            "rotation_period_in_days": 365,
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-ebs-key",
+              "Project": "keycloak",
+              "Purpose": "ebs-encryption",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-ebs-key",
+              "Project": "keycloak",
+              "Purpose": "ebs-encryption",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "timeouts": null,
+            "xks_key_id": ""
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxMjAwMDAwMDAwMDB9fQ==",
+          "dependencies": [
+            "module.kms.data.aws_caller_identity.current",
+            "module.kms.data.aws_region.current"
+          ],
+          "create_before_destroy": true
+        }
+      ]
+    },
+    {
+      "module": "module.kms",
+      "mode": "managed",
+      "type": "aws_kms_key",
+      "name": "secrets",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:kms:us-east-1:406207085797:key/afbe7fc4-9f79-4f4b-8d92-b531f24f0963",
+            "bypass_policy_lockout_safety_check": false,
+            "custom_key_store_id": "",
+            "customer_master_key_spec": "SYMMETRIC_DEFAULT",
+            "deletion_window_in_days": 7,
+            "description": "keycloak-dev - encrypts the Keycloak admin credentials in Secrets Manager",
+            "enable_key_rotation": true,
+            "id": "afbe7fc4-9f79-4f4b-8d92-b531f24f0963",
+            "is_enabled": true,
+            "key_id": "afbe7fc4-9f79-4f4b-8d92-b531f24f0963",
+            "key_usage": "ENCRYPT_DECRYPT",
+            "multi_region": false,
+            "policy": "{\"Statement\":[{\"Action\":\"kms:*\",\"Effect\":\"Allow\",\"Principal\":{\"AWS\":\"arn:aws:iam::406207085797:root\"},\"Resource\":\"*\",\"Sid\":\"EnableRootAccountManagement\"},{\"Action\":[\"kms:Encrypt\",\"kms:Decrypt\",\"kms:ReEncrypt*\",\"kms:GenerateDataKey*\",\"kms:CreateGrant\",\"kms:DescribeKey\"],\"Condition\":{\"StringEquals\":{\"kms:CallerAccount\":\"406207085797\"}},\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"secretsmanager.amazonaws.com\"},\"Resource\":\"*\",\"Sid\":\"AllowSecretsManagerUse\"}],\"Version\":\"2012-10-17\"}",
+            "rotation_period_in_days": 365,
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-secrets-key",
+              "Project": "keycloak",
+              "Purpose": "secrets-encryption",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-secrets-key",
+              "Project": "keycloak",
+              "Purpose": "secrets-encryption",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "timeouts": null,
+            "xks_key_id": ""
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxMjAwMDAwMDAwMDB9fQ==",
+          "dependencies": [
+            "module.kms.data.aws_caller_identity.current"
+          ],
+          "create_before_destroy": true
+        }
+      ]
+    },
+    {
+      "module": "module.network",
+      "mode": "managed",
+      "type": "aws_eip",
+      "name": "nat",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "address": null,
+            "allocation_id": "eipalloc-0b8f4f4ce25dfcec5",
+            "arn": "arn:aws:ec2:us-east-1:406207085797:elastic-ip/eipalloc-0b8f4f4ce25dfcec5",
+            "associate_with_private_ip": null,
+            "association_id": "",
+            "carrier_ip": "",
+            "customer_owned_ip": "",
+            "customer_owned_ipv4_pool": "",
+            "domain": "vpc",
+            "id": "eipalloc-0b8f4f4ce25dfcec5",
+            "instance": "",
+            "ipam_pool_id": null,
+            "network_border_group": "us-east-1",
+            "network_interface": "",
+            "private_dns": null,
+            "private_ip": "",
+            "ptr_record": "",
+            "public_dns": "ec2-3-91-135-151.compute-1.amazonaws.com",
+            "public_ip": "3.91.135.151",
+            "public_ipv4_pool": "amazon",
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-nat-eip",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-nat-eip",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "timeouts": null,
+            "vpc": true
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiZGVsZXRlIjoxODAwMDAwMDAwMDAsInJlYWQiOjkwMDAwMDAwMDAwMCwidXBkYXRlIjozMDAwMDAwMDAwMDB9fQ==",
+          "dependencies": [
+            "module.network.aws_internet_gateway.main",
+            "module.network.aws_vpc.main"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.network",
+      "mode": "managed",
+      "type": "aws_internet_gateway",
+      "name": "main",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:ec2:us-east-1:406207085797:internet-gateway/igw-01e57b9a1182d039d",
+            "id": "igw-01e57b9a1182d039d",
+            "owner_id": "406207085797",
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-igw",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-igw",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "timeouts": null,
+            "vpc_id": "vpc-0dcaa1d42559b49fc"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxMjAwMDAwMDAwMDAwLCJkZWxldGUiOjEyMDAwMDAwMDAwMDAsInVwZGF0ZSI6MTIwMDAwMDAwMDAwMH19",
+          "dependencies": [
+            "module.network.aws_vpc.main"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.network",
+      "mode": "managed",
+      "type": "aws_nat_gateway",
+      "name": "main",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "index_key": 0,
+          "schema_version": 0,
+          "attributes": {
+            "allocation_id": "eipalloc-0b8f4f4ce25dfcec5",
+            "association_id": "eipassoc-0136f519eaee43cb1",
+            "connectivity_type": "public",
+            "id": "nat-011d20849606da000",
+            "network_interface_id": "eni-0c16b1bf73826e015",
+            "private_ip": "10.0.1.5",
+            "public_ip": "3.91.135.151",
+            "secondary_allocation_ids": null,
+            "secondary_private_ip_address_count": 0,
+            "secondary_private_ip_addresses": [],
+            "subnet_id": "subnet-0a8316496f044358e",
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-nat",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-nat",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "timeouts": null
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjo2MDAwMDAwMDAwMDAsImRlbGV0ZSI6MTgwMDAwMDAwMDAwMCwidXBkYXRlIjo2MDAwMDAwMDAwMDB9fQ==",
+          "dependencies": [
+            "data.aws_availability_zones.available",
+            "module.network.aws_eip.nat",
+            "module.network.aws_internet_gateway.main",
+            "module.network.aws_subnet.public",
+            "module.network.aws_vpc.main"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.network",
+      "mode": "managed",
+      "type": "aws_route",
+      "name": "private_nat",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "index_key": 0,
+          "schema_version": 0,
+          "attributes": {
+            "carrier_gateway_id": "",
+            "core_network_arn": "",
+            "destination_cidr_block": "0.0.0.0/0",
+            "destination_ipv6_cidr_block": "",
+            "destination_prefix_list_id": "",
+            "egress_only_gateway_id": "",
+            "gateway_id": "",
+            "id": "r-rtb-0bceed25b0260298b1080289494",
+            "instance_id": "",
+            "instance_owner_id": "",
+            "local_gateway_id": "",
+            "nat_gateway_id": "nat-011d20849606da000",
+            "network_interface_id": "",
+            "origin": "CreateRoute",
+            "route_table_id": "rtb-0bceed25b0260298b",
+            "state": "active",
+            "timeouts": null,
+            "transit_gateway_id": "",
+            "vpc_endpoint_id": "",
+            "vpc_peering_connection_id": ""
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjozMDAwMDAwMDAwMDAsImRlbGV0ZSI6MzAwMDAwMDAwMDAwLCJ1cGRhdGUiOjEyMDAwMDAwMDAwMH19",
+          "dependencies": [
+            "data.aws_availability_zones.available",
+            "module.network.aws_eip.nat",
+            "module.network.aws_internet_gateway.main",
+            "module.network.aws_nat_gateway.main",
+            "module.network.aws_route_table.private",
+            "module.network.aws_subnet.public",
+            "module.network.aws_vpc.main"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.network",
+      "mode": "managed",
+      "type": "aws_route",
+      "name": "public_internet",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "carrier_gateway_id": "",
+            "core_network_arn": "",
+            "destination_cidr_block": "0.0.0.0/0",
+            "destination_ipv6_cidr_block": "",
+            "destination_prefix_list_id": "",
+            "egress_only_gateway_id": "",
+            "gateway_id": "igw-01e57b9a1182d039d",
+            "id": "r-rtb-08ce50b7d2aa273761080289494",
+            "instance_id": "",
+            "instance_owner_id": "",
+            "local_gateway_id": "",
+            "nat_gateway_id": "",
+            "network_interface_id": "",
+            "origin": "CreateRoute",
+            "route_table_id": "rtb-08ce50b7d2aa27376",
+            "state": "active",
+            "timeouts": null,
+            "transit_gateway_id": "",
+            "vpc_endpoint_id": "",
+            "vpc_peering_connection_id": ""
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjozMDAwMDAwMDAwMDAsImRlbGV0ZSI6MzAwMDAwMDAwMDAwLCJ1cGRhdGUiOjEyMDAwMDAwMDAwMH19",
+          "dependencies": [
+            "module.network.aws_internet_gateway.main",
+            "module.network.aws_route_table.public",
+            "module.network.aws_vpc.main"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.network",
+      "mode": "managed",
+      "type": "aws_route_table",
+      "name": "private",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:ec2:us-east-1:406207085797:route-table/rtb-0bceed25b0260298b",
+            "id": "rtb-0bceed25b0260298b",
+            "owner_id": "406207085797",
+            "propagating_vgws": [],
+            "route": [],
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-private-rt",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-private-rt",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "timeouts": null,
+            "vpc_id": "vpc-0dcaa1d42559b49fc"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjozMDAwMDAwMDAwMDAsImRlbGV0ZSI6MzAwMDAwMDAwMDAwLCJ1cGRhdGUiOjEyMDAwMDAwMDAwMH19",
+          "dependencies": [
+            "module.network.aws_vpc.main"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.network",
+      "mode": "managed",
+      "type": "aws_route_table",
+      "name": "public",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:ec2:us-east-1:406207085797:route-table/rtb-08ce50b7d2aa27376",
+            "id": "rtb-08ce50b7d2aa27376",
+            "owner_id": "406207085797",
+            "propagating_vgws": [],
+            "route": [],
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-public-rt",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-public-rt",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "timeouts": null,
+            "vpc_id": "vpc-0dcaa1d42559b49fc"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjozMDAwMDAwMDAwMDAsImRlbGV0ZSI6MzAwMDAwMDAwMDAwLCJ1cGRhdGUiOjEyMDAwMDAwMDAwMH19",
+          "dependencies": [
+            "module.network.aws_vpc.main"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.network",
+      "mode": "managed",
+      "type": "aws_route_table_association",
+      "name": "private",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "index_key": 0,
+          "schema_version": 0,
+          "attributes": {
+            "gateway_id": "",
+            "id": "rtbassoc-06119f4a70436bd39",
+            "route_table_id": "rtb-0bceed25b0260298b",
+            "subnet_id": "subnet-0ac59725acb145458",
+            "timeouts": null
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjozMDAwMDAwMDAwMDAsImRlbGV0ZSI6MzAwMDAwMDAwMDAwLCJ1cGRhdGUiOjEyMDAwMDAwMDAwMH19",
+          "dependencies": [
+            "data.aws_availability_zones.available",
+            "module.network.aws_route_table.private",
+            "module.network.aws_subnet.private",
+            "module.network.aws_vpc.main"
+          ]
+        },
+        {
+          "index_key": 1,
+          "schema_version": 0,
+          "attributes": {
+            "gateway_id": "",
+            "id": "rtbassoc-0ac45cb25234e1154",
+            "route_table_id": "rtb-0bceed25b0260298b",
+            "subnet_id": "subnet-0771e1f638bd51f63",
+            "timeouts": null
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjozMDAwMDAwMDAwMDAsImRlbGV0ZSI6MzAwMDAwMDAwMDAwLCJ1cGRhdGUiOjEyMDAwMDAwMDAwMH19",
+          "dependencies": [
+            "data.aws_availability_zones.available",
+            "module.network.aws_route_table.private",
+            "module.network.aws_subnet.private",
+            "module.network.aws_vpc.main"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.network",
+      "mode": "managed",
+      "type": "aws_route_table_association",
+      "name": "public",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "index_key": 0,
+          "schema_version": 0,
+          "attributes": {
+            "gateway_id": "",
+            "id": "rtbassoc-008e2f8fbfe514617",
+            "route_table_id": "rtb-08ce50b7d2aa27376",
+            "subnet_id": "subnet-0a8316496f044358e",
+            "timeouts": null
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjozMDAwMDAwMDAwMDAsImRlbGV0ZSI6MzAwMDAwMDAwMDAwLCJ1cGRhdGUiOjEyMDAwMDAwMDAwMH19",
+          "dependencies": [
+            "data.aws_availability_zones.available",
+            "module.network.aws_route_table.public",
+            "module.network.aws_subnet.public",
+            "module.network.aws_vpc.main"
+          ]
+        },
+        {
+          "index_key": 1,
+          "schema_version": 0,
+          "attributes": {
+            "gateway_id": "",
+            "id": "rtbassoc-071a4451a894ab3de",
+            "route_table_id": "rtb-08ce50b7d2aa27376",
+            "subnet_id": "subnet-0266257f44270c52b",
+            "timeouts": null
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjozMDAwMDAwMDAwMDAsImRlbGV0ZSI6MzAwMDAwMDAwMDAwLCJ1cGRhdGUiOjEyMDAwMDAwMDAwMH19",
+          "dependencies": [
+            "data.aws_availability_zones.available",
+            "module.network.aws_route_table.public",
+            "module.network.aws_subnet.public",
+            "module.network.aws_vpc.main"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.network",
+      "mode": "managed",
+      "type": "aws_security_group",
+      "name": "vpc_endpoints",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 1,
+          "attributes": {
+            "arn": "arn:aws:ec2:us-east-1:406207085797:security-group/sg-0218dbd13397cb9eb",
+            "description": "Allow HTTPS from inside the VPC to the interface VPC endpoints",
+            "egress": [
+              {
+                "cidr_blocks": [
+                  "0.0.0.0/0"
+                ],
+                "description": "Allow all outbound",
+                "from_port": 0,
+                "ipv6_cidr_blocks": [],
+                "prefix_list_ids": [],
+                "protocol": "-1",
+                "security_groups": [],
+                "self": false,
+                "to_port": 0
+              }
+            ],
+            "id": "sg-0218dbd13397cb9eb",
+            "ingress": [
+              {
+                "cidr_blocks": [
+                  "10.0.0.0/16"
+                ],
+                "description": "HTTPS from anywhere inside this VPC only",
+                "from_port": 443,
+                "ipv6_cidr_blocks": [],
+                "prefix_list_ids": [],
+                "protocol": "tcp",
+                "security_groups": [],
+                "self": false,
+                "to_port": 443
+              }
+            ],
+            "name": "keycloak-dev-vpce-20260720213546357600000008",
+            "name_prefix": "keycloak-dev-vpce-",
+            "owner_id": "406207085797",
+            "revoke_rules_on_delete": false,
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-vpce-sg",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-vpce-sg",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "timeouts": null,
+            "vpc_id": "vpc-0dcaa1d42559b49fc"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjo2MDAwMDAwMDAwMDAsImRlbGV0ZSI6OTAwMDAwMDAwMDAwfSwic2NoZW1hX3ZlcnNpb24iOiIxIn0=",
+          "dependencies": [
+            "module.network.aws_vpc.main"
+          ],
+          "create_before_destroy": true
+        }
+      ]
+    },
+    {
+      "module": "module.network",
+      "mode": "managed",
+      "type": "aws_subnet",
+      "name": "private",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "index_key": 0,
+          "schema_version": 1,
+          "attributes": {
+            "arn": "arn:aws:ec2:us-east-1:406207085797:subnet/subnet-0ac59725acb145458",
+            "assign_ipv6_address_on_creation": false,
+            "availability_zone": "us-east-1a",
+            "availability_zone_id": "use1-az1",
+            "cidr_block": "10.0.11.0/24",
+            "customer_owned_ipv4_pool": "",
+            "enable_dns64": false,
+            "enable_lni_at_device_index": 0,
+            "enable_resource_name_dns_a_record_on_launch": false,
+            "enable_resource_name_dns_aaaa_record_on_launch": false,
+            "id": "subnet-0ac59725acb145458",
+            "ipv6_cidr_block": "",
+            "ipv6_cidr_block_association_id": "",
+            "ipv6_native": false,
+            "map_customer_owned_ip_on_launch": false,
+            "map_public_ip_on_launch": false,
+            "outpost_arn": "",
+            "owner_id": "406207085797",
+            "private_dns_hostname_type_on_launch": "ip-name",
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-private-1",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws",
+              "Tier": "private"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-private-1",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws",
+              "Tier": "private"
+            },
+            "timeouts": null,
+            "vpc_id": "vpc-0dcaa1d42559b49fc"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjo2MDAwMDAwMDAwMDAsImRlbGV0ZSI6MTIwMDAwMDAwMDAwMH0sInNjaGVtYV92ZXJzaW9uIjoiMSJ9",
+          "dependencies": [
+            "data.aws_availability_zones.available",
+            "module.network.aws_vpc.main"
+          ],
+          "create_before_destroy": true
+        },
+        {
+          "index_key": 1,
+          "schema_version": 1,
+          "attributes": {
+            "arn": "arn:aws:ec2:us-east-1:406207085797:subnet/subnet-0771e1f638bd51f63",
+            "assign_ipv6_address_on_creation": false,
+            "availability_zone": "us-east-1b",
+            "availability_zone_id": "use1-az2",
+            "cidr_block": "10.0.12.0/24",
+            "customer_owned_ipv4_pool": "",
+            "enable_dns64": false,
+            "enable_lni_at_device_index": 0,
+            "enable_resource_name_dns_a_record_on_launch": false,
+            "enable_resource_name_dns_aaaa_record_on_launch": false,
+            "id": "subnet-0771e1f638bd51f63",
+            "ipv6_cidr_block": "",
+            "ipv6_cidr_block_association_id": "",
+            "ipv6_native": false,
+            "map_customer_owned_ip_on_launch": false,
+            "map_public_ip_on_launch": false,
+            "outpost_arn": "",
+            "owner_id": "406207085797",
+            "private_dns_hostname_type_on_launch": "ip-name",
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-private-2",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws",
+              "Tier": "private"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-private-2",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws",
+              "Tier": "private"
+            },
+            "timeouts": null,
+            "vpc_id": "vpc-0dcaa1d42559b49fc"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjo2MDAwMDAwMDAwMDAsImRlbGV0ZSI6MTIwMDAwMDAwMDAwMH0sInNjaGVtYV92ZXJzaW9uIjoiMSJ9",
+          "dependencies": [
+            "data.aws_availability_zones.available",
+            "module.network.aws_vpc.main"
+          ],
+          "create_before_destroy": true
+        }
+      ]
+    },
+    {
+      "module": "module.network",
+      "mode": "managed",
+      "type": "aws_subnet",
+      "name": "public",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "index_key": 0,
+          "schema_version": 1,
+          "attributes": {
+            "arn": "arn:aws:ec2:us-east-1:406207085797:subnet/subnet-0a8316496f044358e",
+            "assign_ipv6_address_on_creation": false,
+            "availability_zone": "us-east-1a",
+            "availability_zone_id": "use1-az1",
+            "cidr_block": "10.0.1.0/24",
+            "customer_owned_ipv4_pool": "",
+            "enable_dns64": false,
+            "enable_lni_at_device_index": 0,
+            "enable_resource_name_dns_a_record_on_launch": false,
+            "enable_resource_name_dns_aaaa_record_on_launch": false,
+            "id": "subnet-0a8316496f044358e",
+            "ipv6_cidr_block": "",
+            "ipv6_cidr_block_association_id": "",
+            "ipv6_native": false,
+            "map_customer_owned_ip_on_launch": false,
+            "map_public_ip_on_launch": true,
+            "outpost_arn": "",
+            "owner_id": "406207085797",
+            "private_dns_hostname_type_on_launch": "ip-name",
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-public-1",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws",
+              "Tier": "public"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-public-1",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws",
+              "Tier": "public"
+            },
+            "timeouts": null,
+            "vpc_id": "vpc-0dcaa1d42559b49fc"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjo2MDAwMDAwMDAwMDAsImRlbGV0ZSI6MTIwMDAwMDAwMDAwMH0sInNjaGVtYV92ZXJzaW9uIjoiMSJ9",
+          "dependencies": [
+            "data.aws_availability_zones.available",
+            "module.network.aws_vpc.main"
+          ],
+          "create_before_destroy": true
+        },
+        {
+          "index_key": 1,
+          "schema_version": 1,
+          "attributes": {
+            "arn": "arn:aws:ec2:us-east-1:406207085797:subnet/subnet-0266257f44270c52b",
+            "assign_ipv6_address_on_creation": false,
+            "availability_zone": "us-east-1b",
+            "availability_zone_id": "use1-az2",
+            "cidr_block": "10.0.2.0/24",
+            "customer_owned_ipv4_pool": "",
+            "enable_dns64": false,
+            "enable_lni_at_device_index": 0,
+            "enable_resource_name_dns_a_record_on_launch": false,
+            "enable_resource_name_dns_aaaa_record_on_launch": false,
+            "id": "subnet-0266257f44270c52b",
+            "ipv6_cidr_block": "",
+            "ipv6_cidr_block_association_id": "",
+            "ipv6_native": false,
+            "map_customer_owned_ip_on_launch": false,
+            "map_public_ip_on_launch": true,
+            "outpost_arn": "",
+            "owner_id": "406207085797",
+            "private_dns_hostname_type_on_launch": "ip-name",
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-public-2",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws",
+              "Tier": "public"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-public-2",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws",
+              "Tier": "public"
+            },
+            "timeouts": null,
+            "vpc_id": "vpc-0dcaa1d42559b49fc"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjo2MDAwMDAwMDAwMDAsImRlbGV0ZSI6MTIwMDAwMDAwMDAwMH0sInNjaGVtYV92ZXJzaW9uIjoiMSJ9",
+          "dependencies": [
+            "data.aws_availability_zones.available",
+            "module.network.aws_vpc.main"
+          ],
+          "create_before_destroy": true
+        }
+      ]
+    },
+    {
+      "module": "module.network",
+      "mode": "managed",
+      "type": "aws_vpc",
+      "name": "main",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 1,
+          "attributes": {
+            "arn": "arn:aws:ec2:us-east-1:406207085797:vpc/vpc-0dcaa1d42559b49fc",
+            "assign_generated_ipv6_cidr_block": false,
+            "cidr_block": "10.0.0.0/16",
+            "default_network_acl_id": "acl-018e2fe3c96aaa6d1",
+            "default_route_table_id": "rtb-0ad1b7ea77fdc5801",
+            "default_security_group_id": "sg-06234391ee34799d1",
+            "dhcp_options_id": "dopt-0c245e0b2f28782f3",
+            "enable_dns_hostnames": true,
+            "enable_dns_support": true,
+            "enable_network_address_usage_metrics": false,
+            "id": "vpc-0dcaa1d42559b49fc",
+            "instance_tenancy": "default",
+            "ipv4_ipam_pool_id": null,
+            "ipv4_netmask_length": null,
+            "ipv6_association_id": "",
+            "ipv6_cidr_block": "",
+            "ipv6_cidr_block_network_border_group": "",
+            "ipv6_ipam_pool_id": "",
+            "ipv6_netmask_length": 0,
+            "main_route_table_id": "rtb-0ad1b7ea77fdc5801",
+            "owner_id": "406207085797",
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-vpc",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-vpc",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            }
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJzY2hlbWFfdmVyc2lvbiI6IjEifQ==",
+          "create_before_destroy": true
+        }
+      ]
+    },
+    {
+      "module": "module.network",
+      "mode": "managed",
+      "type": "aws_vpc_endpoint",
+      "name": "interface",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "index_key": "ec2messages",
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:ec2:us-east-1:406207085797:vpc-endpoint/vpce-0e3a9312a02bd9256",
+            "auto_accept": null,
+            "cidr_blocks": [],
+            "dns_entry": [
+              {
+                "dns_name": "vpce-0e3a9312a02bd9256-34t0pz88.ec2messages.us-east-1.vpce.amazonaws.com",
+                "hosted_zone_id": "Z7HUB22UULQXV"
+              },
+              {
+                "dns_name": "vpce-0e3a9312a02bd9256-34t0pz88-us-east-1a.ec2messages.us-east-1.vpce.amazonaws.com",
+                "hosted_zone_id": "Z7HUB22UULQXV"
+              },
+              {
+                "dns_name": "vpce-0e3a9312a02bd9256-34t0pz88-us-east-1b.ec2messages.us-east-1.vpce.amazonaws.com",
+                "hosted_zone_id": "Z7HUB22UULQXV"
+              },
+              {
+                "dns_name": "ec2messages.us-east-1.amazonaws.com",
+                "hosted_zone_id": "Z0172375R7713YWR5AJV"
+              }
+            ],
+            "dns_options": [
+              {
+                "dns_record_ip_type": "ipv4",
+                "private_dns_only_for_inbound_resolver_endpoint": false
+              }
+            ],
+            "id": "vpce-0e3a9312a02bd9256",
+            "ip_address_type": "ipv4",
+            "network_interface_ids": [
+              "eni-09e79cdd62bf4922b",
+              "eni-0dda7d8a74861afbe"
+            ],
+            "owner_id": "406207085797",
+            "policy": "{\"Statement\":[{\"Action\":\"*\",\"Effect\":\"Allow\",\"Principal\":\"*\",\"Resource\":\"*\"}]}",
+            "prefix_list_id": null,
+            "private_dns_enabled": true,
+            "requester_managed": false,
+            "resource_configuration_arn": "",
+            "route_table_ids": [],
+            "security_group_ids": [
+              "sg-0218dbd13397cb9eb"
+            ],
+            "service_name": "com.amazonaws.us-east-1.ec2messages",
+            "service_network_arn": "",
+            "service_region": "us-east-1",
+            "state": "available",
+            "subnet_configuration": [
+              {
+                "ipv4": "10.0.11.92",
+                "ipv6": "",
+                "subnet_id": "subnet-0ac59725acb145458"
+              },
+              {
+                "ipv4": "10.0.12.252",
+                "ipv6": "",
+                "subnet_id": "subnet-0771e1f638bd51f63"
+              }
+            ],
+            "subnet_ids": [
+              "subnet-0771e1f638bd51f63",
+              "subnet-0ac59725acb145458"
+            ],
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-ec2messages-endpoint",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-ec2messages-endpoint",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "timeouts": null,
+            "vpc_endpoint_type": "Interface",
+            "vpc_id": "vpc-0dcaa1d42559b49fc"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjo2MDAwMDAwMDAwMDAsImRlbGV0ZSI6NjAwMDAwMDAwMDAwLCJ1cGRhdGUiOjYwMDAwMDAwMDAwMH19",
+          "dependencies": [
+            "data.aws_availability_zones.available",
+            "module.network.aws_security_group.vpc_endpoints",
+            "module.network.aws_subnet.private",
+            "module.network.aws_vpc.main"
+          ]
+        },
+        {
+          "index_key": "kms",
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:ec2:us-east-1:406207085797:vpc-endpoint/vpce-0f4153fb615b473f3",
+            "auto_accept": null,
+            "cidr_blocks": [],
+            "dns_entry": [
+              {
+                "dns_name": "vpce-0f4153fb615b473f3-ltr8wxj7.kms.us-east-1.vpce.amazonaws.com",
+                "hosted_zone_id": "Z7HUB22UULQXV"
+              },
+              {
+                "dns_name": "vpce-0f4153fb615b473f3-ltr8wxj7-us-east-1a.kms.us-east-1.vpce.amazonaws.com",
+                "hosted_zone_id": "Z7HUB22UULQXV"
+              },
+              {
+                "dns_name": "vpce-0f4153fb615b473f3-ltr8wxj7-us-east-1b.kms.us-east-1.vpce.amazonaws.com",
+                "hosted_zone_id": "Z7HUB22UULQXV"
+              },
+              {
+                "dns_name": "kms.us-east-1.amazonaws.com",
+                "hosted_zone_id": "Z0540556RBYOPMAY5T7Q"
+              },
+              {
+                "dns_name": "kms.us-east-1.api.aws",
+                "hosted_zone_id": "Z058696714ZNNQT1VNK4"
+              }
+            ],
+            "dns_options": [
+              {
+                "dns_record_ip_type": "ipv4",
+                "private_dns_only_for_inbound_resolver_endpoint": false
+              }
+            ],
+            "id": "vpce-0f4153fb615b473f3",
+            "ip_address_type": "ipv4",
+            "network_interface_ids": [
+              "eni-050fd6fcf3aface06",
+              "eni-0735590aedeea56f4"
+            ],
+            "owner_id": "406207085797",
+            "policy": "{\"Statement\":[{\"Action\":\"*\",\"Effect\":\"Allow\",\"Principal\":\"*\",\"Resource\":\"*\"}]}",
+            "prefix_list_id": null,
+            "private_dns_enabled": true,
+            "requester_managed": false,
+            "resource_configuration_arn": "",
+            "route_table_ids": [],
+            "security_group_ids": [
+              "sg-0218dbd13397cb9eb"
+            ],
+            "service_name": "com.amazonaws.us-east-1.kms",
+            "service_network_arn": "",
+            "service_region": "us-east-1",
+            "state": "available",
+            "subnet_configuration": [
+              {
+                "ipv4": "10.0.11.203",
+                "ipv6": "",
+                "subnet_id": "subnet-0ac59725acb145458"
+              },
+              {
+                "ipv4": "10.0.12.115",
+                "ipv6": "",
+                "subnet_id": "subnet-0771e1f638bd51f63"
+              }
+            ],
+            "subnet_ids": [
+              "subnet-0771e1f638bd51f63",
+              "subnet-0ac59725acb145458"
+            ],
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-kms-endpoint",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-kms-endpoint",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "timeouts": null,
+            "vpc_endpoint_type": "Interface",
+            "vpc_id": "vpc-0dcaa1d42559b49fc"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjo2MDAwMDAwMDAwMDAsImRlbGV0ZSI6NjAwMDAwMDAwMDAwLCJ1cGRhdGUiOjYwMDAwMDAwMDAwMH19",
+          "dependencies": [
+            "data.aws_availability_zones.available",
+            "module.network.aws_security_group.vpc_endpoints",
+            "module.network.aws_subnet.private",
+            "module.network.aws_vpc.main"
+          ]
+        },
+        {
+          "index_key": "logs",
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:ec2:us-east-1:406207085797:vpc-endpoint/vpce-0a4239157dce10479",
+            "auto_accept": null,
+            "cidr_blocks": [],
+            "dns_entry": [
+              {
+                "dns_name": "vpce-0a4239157dce10479-zbwoxj4b.logs.us-east-1.vpce.amazonaws.com",
+                "hosted_zone_id": "Z7HUB22UULQXV"
+              },
+              {
+                "dns_name": "vpce-0a4239157dce10479-zbwoxj4b-us-east-1b.logs.us-east-1.vpce.amazonaws.com",
+                "hosted_zone_id": "Z7HUB22UULQXV"
+              },
+              {
+                "dns_name": "vpce-0a4239157dce10479-zbwoxj4b-us-east-1a.logs.us-east-1.vpce.amazonaws.com",
+                "hosted_zone_id": "Z7HUB22UULQXV"
+              },
+              {
+                "dns_name": "logs.us-east-1.amazonaws.com",
+                "hosted_zone_id": "Z058825436UTR2A7KR0QS"
+              },
+              {
+                "dns_name": "streaming-logs.us-east-1.amazonaws.com",
+                "hosted_zone_id": "Z01723482SW7LDEBDBCVC"
+              },
+              {
+                "dns_name": "streaming-logs.us-east-1.api.aws",
+                "hosted_zone_id": "Z0532730C2FD9R5IP29C"
+              },
+              {
+                "dns_name": "logs.us-east-1.api.aws",
+                "hosted_zone_id": "Z053929728PP9D6LMHNBU"
+              }
+            ],
+            "dns_options": [
+              {
+                "dns_record_ip_type": "ipv4",
+                "private_dns_only_for_inbound_resolver_endpoint": false
+              }
+            ],
+            "id": "vpce-0a4239157dce10479",
+            "ip_address_type": "ipv4",
+            "network_interface_ids": [
+              "eni-0484c8c0b17d1bbc3",
+              "eni-0ba581f583f8d3ff7"
+            ],
+            "owner_id": "406207085797",
+            "policy": "{\"Statement\":[{\"Action\":\"*\",\"Effect\":\"Allow\",\"Principal\":\"*\",\"Resource\":\"*\"}]}",
+            "prefix_list_id": null,
+            "private_dns_enabled": true,
+            "requester_managed": false,
+            "resource_configuration_arn": "",
+            "route_table_ids": [],
+            "security_group_ids": [
+              "sg-0218dbd13397cb9eb"
+            ],
+            "service_name": "com.amazonaws.us-east-1.logs",
+            "service_network_arn": "",
+            "service_region": "us-east-1",
+            "state": "available",
+            "subnet_configuration": [
+              {
+                "ipv4": "10.0.11.14",
+                "ipv6": "",
+                "subnet_id": "subnet-0ac59725acb145458"
+              },
+              {
+                "ipv4": "10.0.12.47",
+                "ipv6": "",
+                "subnet_id": "subnet-0771e1f638bd51f63"
+              }
+            ],
+            "subnet_ids": [
+              "subnet-0771e1f638bd51f63",
+              "subnet-0ac59725acb145458"
+            ],
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-logs-endpoint",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-logs-endpoint",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "timeouts": null,
+            "vpc_endpoint_type": "Interface",
+            "vpc_id": "vpc-0dcaa1d42559b49fc"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjo2MDAwMDAwMDAwMDAsImRlbGV0ZSI6NjAwMDAwMDAwMDAwLCJ1cGRhdGUiOjYwMDAwMDAwMDAwMH19",
+          "dependencies": [
+            "data.aws_availability_zones.available",
+            "module.network.aws_security_group.vpc_endpoints",
+            "module.network.aws_subnet.private",
+            "module.network.aws_vpc.main"
+          ]
+        },
+        {
+          "index_key": "ssm",
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:ec2:us-east-1:406207085797:vpc-endpoint/vpce-0aaf14fa0b79d0fc8",
+            "auto_accept": null,
+            "cidr_blocks": [],
+            "dns_entry": [
+              {
+                "dns_name": "vpce-0aaf14fa0b79d0fc8-391rtgz7.ssm.us-east-1.vpce.amazonaws.com",
+                "hosted_zone_id": "Z7HUB22UULQXV"
+              },
+              {
+                "dns_name": "vpce-0aaf14fa0b79d0fc8-391rtgz7-us-east-1a.ssm.us-east-1.vpce.amazonaws.com",
+                "hosted_zone_id": "Z7HUB22UULQXV"
+              },
+              {
+                "dns_name": "vpce-0aaf14fa0b79d0fc8-391rtgz7-us-east-1b.ssm.us-east-1.vpce.amazonaws.com",
+                "hosted_zone_id": "Z7HUB22UULQXV"
+              },
+              {
+                "dns_name": "ssm.us-east-1.amazonaws.com",
+                "hosted_zone_id": "Z053470824F4C2US34A2E"
+              },
+              {
+                "dns_name": "ssm.us-east-1.api.aws",
+                "hosted_zone_id": "Z05883961M6M1B33M8ISP"
+              }
+            ],
+            "dns_options": [
+              {
+                "dns_record_ip_type": "ipv4",
+                "private_dns_only_for_inbound_resolver_endpoint": false
+              }
+            ],
+            "id": "vpce-0aaf14fa0b79d0fc8",
+            "ip_address_type": "ipv4",
+            "network_interface_ids": [
+              "eni-0d8b6af49c83c5c8d",
+              "eni-0fa7315ef573f6e8c"
+            ],
+            "owner_id": "406207085797",
+            "policy": "{\"Statement\":[{\"Action\":\"*\",\"Effect\":\"Allow\",\"Principal\":\"*\",\"Resource\":\"*\"}]}",
+            "prefix_list_id": null,
+            "private_dns_enabled": true,
+            "requester_managed": false,
+            "resource_configuration_arn": "",
+            "route_table_ids": [],
+            "security_group_ids": [
+              "sg-0218dbd13397cb9eb"
+            ],
+            "service_name": "com.amazonaws.us-east-1.ssm",
+            "service_network_arn": "",
+            "service_region": "us-east-1",
+            "state": "available",
+            "subnet_configuration": [
+              {
+                "ipv4": "10.0.11.64",
+                "ipv6": "",
+                "subnet_id": "subnet-0ac59725acb145458"
+              },
+              {
+                "ipv4": "10.0.12.229",
+                "ipv6": "",
+                "subnet_id": "subnet-0771e1f638bd51f63"
+              }
+            ],
+            "subnet_ids": [
+              "subnet-0771e1f638bd51f63",
+              "subnet-0ac59725acb145458"
+            ],
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-ssm-endpoint",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-ssm-endpoint",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "timeouts": null,
+            "vpc_endpoint_type": "Interface",
+            "vpc_id": "vpc-0dcaa1d42559b49fc"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjo2MDAwMDAwMDAwMDAsImRlbGV0ZSI6NjAwMDAwMDAwMDAwLCJ1cGRhdGUiOjYwMDAwMDAwMDAwMH19",
+          "dependencies": [
+            "data.aws_availability_zones.available",
+            "module.network.aws_security_group.vpc_endpoints",
+            "module.network.aws_subnet.private",
+            "module.network.aws_vpc.main"
+          ]
+        },
+        {
+          "index_key": "ssmmessages",
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:ec2:us-east-1:406207085797:vpc-endpoint/vpce-053c61f749e3406fe",
+            "auto_accept": null,
+            "cidr_blocks": [],
+            "dns_entry": [
+              {
+                "dns_name": "vpce-053c61f749e3406fe-4fhh1w3q.ssmmessages.us-east-1.vpce.amazonaws.com",
+                "hosted_zone_id": "Z7HUB22UULQXV"
+              },
+              {
+                "dns_name": "vpce-053c61f749e3406fe-4fhh1w3q-us-east-1b.ssmmessages.us-east-1.vpce.amazonaws.com",
+                "hosted_zone_id": "Z7HUB22UULQXV"
+              },
+              {
+                "dns_name": "vpce-053c61f749e3406fe-4fhh1w3q-us-east-1a.ssmmessages.us-east-1.vpce.amazonaws.com",
+                "hosted_zone_id": "Z7HUB22UULQXV"
+              },
+              {
+                "dns_name": "ssmmessages.us-east-1.amazonaws.com",
+                "hosted_zone_id": "Z0180051YKUGIDJCDHIO"
+              },
+              {
+                "dns_name": "ssmmessages.us-east-1.api.aws",
+                "hosted_zone_id": "Z02401539GXSL3QI7F3V"
+              }
+            ],
+            "dns_options": [
+              {
+                "dns_record_ip_type": "ipv4",
+                "private_dns_only_for_inbound_resolver_endpoint": false
+              }
+            ],
+            "id": "vpce-053c61f749e3406fe",
+            "ip_address_type": "ipv4",
+            "network_interface_ids": [
+              "eni-00672fc95c2c8e617",
+              "eni-0bfb5f4dad0c8dac4"
+            ],
+            "owner_id": "406207085797",
+            "policy": "{\"Statement\":[{\"Action\":\"*\",\"Effect\":\"Allow\",\"Principal\":\"*\",\"Resource\":\"*\"}]}",
+            "prefix_list_id": null,
+            "private_dns_enabled": true,
+            "requester_managed": false,
+            "resource_configuration_arn": "",
+            "route_table_ids": [],
+            "security_group_ids": [
+              "sg-0218dbd13397cb9eb"
+            ],
+            "service_name": "com.amazonaws.us-east-1.ssmmessages",
+            "service_network_arn": "",
+            "service_region": "us-east-1",
+            "state": "available",
+            "subnet_configuration": [
+              {
+                "ipv4": "10.0.11.54",
+                "ipv6": "",
+                "subnet_id": "subnet-0ac59725acb145458"
+              },
+              {
+                "ipv4": "10.0.12.63",
+                "ipv6": "",
+                "subnet_id": "subnet-0771e1f638bd51f63"
+              }
+            ],
+            "subnet_ids": [
+              "subnet-0771e1f638bd51f63",
+              "subnet-0ac59725acb145458"
+            ],
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-ssmmessages-endpoint",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-ssmmessages-endpoint",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "timeouts": null,
+            "vpc_endpoint_type": "Interface",
+            "vpc_id": "vpc-0dcaa1d42559b49fc"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjo2MDAwMDAwMDAwMDAsImRlbGV0ZSI6NjAwMDAwMDAwMDAwLCJ1cGRhdGUiOjYwMDAwMDAwMDAwMH19",
+          "dependencies": [
+            "data.aws_availability_zones.available",
+            "module.network.aws_security_group.vpc_endpoints",
+            "module.network.aws_subnet.private",
+            "module.network.aws_vpc.main"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.network",
+      "mode": "managed",
+      "type": "aws_vpc_endpoint",
+      "name": "s3",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:ec2:us-east-1:406207085797:vpc-endpoint/vpce-0f48161692e571f89",
+            "auto_accept": null,
+            "cidr_blocks": [
+              "16.15.176.0/20",
+              "16.182.0.0/16",
+              "18.34.0.0/19",
+              "52.216.0.0/15",
+              "54.231.0.0/16",
+              "3.5.0.0/19",
+              "18.34.232.0/21",
+              "16.15.192.0/18"
+            ],
+            "dns_entry": [],
+            "dns_options": [
+              {
+                "dns_record_ip_type": "service-defined",
+                "private_dns_only_for_inbound_resolver_endpoint": false
+              }
+            ],
+            "id": "vpce-0f48161692e571f89",
+            "ip_address_type": "ipv4",
+            "network_interface_ids": [],
+            "owner_id": "406207085797",
+            "policy": "{\"Statement\":[{\"Action\":\"*\",\"Effect\":\"Allow\",\"Principal\":\"*\",\"Resource\":\"*\"}],\"Version\":\"2008-10-17\"}",
+            "prefix_list_id": "pl-63a5400a",
+            "private_dns_enabled": false,
+            "requester_managed": false,
+            "resource_configuration_arn": "",
+            "route_table_ids": [
+              "rtb-0bceed25b0260298b"
+            ],
+            "security_group_ids": [],
+            "service_name": "com.amazonaws.us-east-1.s3",
+            "service_network_arn": "",
+            "service_region": "us-east-1",
+            "state": "available",
+            "subnet_configuration": [],
+            "subnet_ids": [],
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-s3-endpoint",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "keycloak-dev-s3-endpoint",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "timeouts": null,
+            "vpc_endpoint_type": "Gateway",
+            "vpc_id": "vpc-0dcaa1d42559b49fc"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjo2MDAwMDAwMDAwMDAsImRlbGV0ZSI6NjAwMDAwMDAwMDAwLCJ1cGRhdGUiOjYwMDAwMDAwMDAwMH19",
+          "dependencies": [
+            "module.network.aws_route_table.private",
+            "module.network.aws_vpc.main"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.security",
+      "mode": "managed",
+      "type": "aws_security_group",
+      "name": "alb",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 1,
+          "attributes": {
+            "arn": "arn:aws:ec2:us-east-1:406207085797:security-group/sg-0c19c09147f95c100",
+            "description": "Keycloak ALB - accepts HTTPS from approved admin IPs only",
+            "egress": [],
+            "id": "sg-0c19c09147f95c100",
+            "ingress": [],
+            "name": "keycloak-dev-alb-2026072021354711340000000a",
+            "name_prefix": "keycloak-dev-alb-",
+            "owner_id": "406207085797",
+            "revoke_rules_on_delete": false,
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Module": "security",
+              "Name": "keycloak-dev-alb-sg",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws",
+              "Tier": "public"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Module": "security",
+              "Name": "keycloak-dev-alb-sg",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws",
+              "Tier": "public"
+            },
+            "timeouts": null,
+            "vpc_id": "vpc-0dcaa1d42559b49fc"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjo2MDAwMDAwMDAwMDAsImRlbGV0ZSI6OTAwMDAwMDAwMDAwfSwic2NoZW1hX3ZlcnNpb24iOiIxIn0=",
+          "dependencies": [
+            "module.network.aws_vpc.main"
+          ],
+          "create_before_destroy": true
+        }
+      ]
+    },
+    {
+      "module": "module.security",
+      "mode": "managed",
+      "type": "aws_security_group",
+      "name": "keycloak",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 1,
+          "attributes": {
+            "arn": "arn:aws:ec2:us-east-1:406207085797:security-group/sg-0b296cc646234b669",
+            "description": "Keycloak app server - accepts traffic from the ALB only",
+            "egress": [],
+            "id": "sg-0b296cc646234b669",
+            "ingress": [],
+            "name": "keycloak-dev-keycloak-20260720213547113200000009",
+            "name_prefix": "keycloak-dev-keycloak-",
+            "owner_id": "406207085797",
+            "revoke_rules_on_delete": false,
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Module": "security",
+              "Name": "keycloak-dev-keycloak-sg",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws",
+              "Tier": "private"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Module": "security",
+              "Name": "keycloak-dev-keycloak-sg",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws",
+              "Tier": "private"
+            },
+            "timeouts": null,
+            "vpc_id": "vpc-0dcaa1d42559b49fc"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjo2MDAwMDAwMDAwMDAsImRlbGV0ZSI6OTAwMDAwMDAwMDAwfSwic2NoZW1hX3ZlcnNpb24iOiIxIn0=",
+          "dependencies": [
+            "module.network.aws_vpc.main"
+          ],
+          "create_before_destroy": true
+        }
+      ]
+    },
+    {
+      "module": "module.security",
+      "mode": "managed",
+      "type": "aws_vpc_security_group_egress_rule",
+      "name": "alb_to_keycloak",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:ec2:us-east-1:406207085797:security-group-rule/sgr-0b4542a402fae4db3",
+            "cidr_ipv4": null,
+            "cidr_ipv6": null,
+            "description": "Forward requests to Keycloak instances on the app port",
+            "from_port": 8080,
+            "id": "sgr-0b4542a402fae4db3",
+            "ip_protocol": "tcp",
+            "prefix_list_id": null,
+            "referenced_security_group_id": "sg-0b296cc646234b669",
+            "security_group_id": "sg-0c19c09147f95c100",
+            "security_group_rule_id": "sgr-0b4542a402fae4db3",
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Module": "security",
+              "Name": "keycloak-dev-alb-egress-app",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Module": "security",
+              "Name": "keycloak-dev-alb-egress-app",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "to_port": 8080
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "dependencies": [
+            "module.network.aws_vpc.main",
+            "module.security.aws_security_group.alb",
+            "module.security.aws_security_group.keycloak"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.security",
+      "mode": "managed",
+      "type": "aws_vpc_security_group_egress_rule",
+      "name": "keycloak_dns_tcp",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:ec2:us-east-1:406207085797:security-group-rule/sgr-085f2ec89ce58a752",
+            "cidr_ipv4": "10.0.0.2/32",
+            "cidr_ipv6": null,
+            "description": "DNS over TCP for oversized responses",
+            "from_port": 53,
+            "id": "sgr-085f2ec89ce58a752",
+            "ip_protocol": "tcp",
+            "prefix_list_id": null,
+            "referenced_security_group_id": null,
+            "security_group_id": "sg-0b296cc646234b669",
+            "security_group_rule_id": "sgr-085f2ec89ce58a752",
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Module": "security",
+              "Name": "keycloak-dev-keycloak-egress-dns-tcp",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Module": "security",
+              "Name": "keycloak-dev-keycloak-egress-dns-tcp",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "to_port": 53
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "dependencies": [
+            "module.network.aws_vpc.main",
+            "module.security.aws_security_group.keycloak"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.security",
+      "mode": "managed",
+      "type": "aws_vpc_security_group_egress_rule",
+      "name": "keycloak_dns_udp",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:ec2:us-east-1:406207085797:security-group-rule/sgr-0b443fe8ceca6cc2d",
+            "cidr_ipv4": "10.0.0.2/32",
+            "cidr_ipv6": null,
+            "description": "DNS lookups to the Amazon-provided VPC resolver",
+            "from_port": 53,
+            "id": "sgr-0b443fe8ceca6cc2d",
+            "ip_protocol": "udp",
+            "prefix_list_id": null,
+            "referenced_security_group_id": null,
+            "security_group_id": "sg-0b296cc646234b669",
+            "security_group_rule_id": "sgr-0b443fe8ceca6cc2d",
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Module": "security",
+              "Name": "keycloak-dev-keycloak-egress-dns-udp",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Module": "security",
+              "Name": "keycloak-dev-keycloak-egress-dns-udp",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "to_port": 53
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "dependencies": [
+            "module.network.aws_vpc.main",
+            "module.security.aws_security_group.keycloak"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.security",
+      "mode": "managed",
+      "type": "aws_vpc_security_group_egress_rule",
+      "name": "keycloak_http_out",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "index_key": 0,
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:ec2:us-east-1:406207085797:security-group-rule/sgr-01a8b1c609d1891a4",
+            "cidr_ipv4": "0.0.0.0/0",
+            "cidr_ipv6": null,
+            "description": "HTTP out for OS package repository metadata",
+            "from_port": 80,
+            "id": "sgr-01a8b1c609d1891a4",
+            "ip_protocol": "tcp",
+            "prefix_list_id": null,
+            "referenced_security_group_id": null,
+            "security_group_id": "sg-0b296cc646234b669",
+            "security_group_rule_id": "sgr-01a8b1c609d1891a4",
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Module": "security",
+              "Name": "keycloak-dev-keycloak-egress-http",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Module": "security",
+              "Name": "keycloak-dev-keycloak-egress-http",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "to_port": 80
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "dependencies": [
+            "module.network.aws_vpc.main",
+            "module.security.aws_security_group.keycloak"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.security",
+      "mode": "managed",
+      "type": "aws_vpc_security_group_egress_rule",
+      "name": "keycloak_https_out",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:ec2:us-east-1:406207085797:security-group-rule/sgr-03cd2dba192b62f30",
+            "cidr_ipv4": "0.0.0.0/0",
+            "cidr_ipv6": null,
+            "description": "HTTPS out for package installs and AWS API calls",
+            "from_port": 443,
+            "id": "sgr-03cd2dba192b62f30",
+            "ip_protocol": "tcp",
+            "prefix_list_id": null,
+            "referenced_security_group_id": null,
+            "security_group_id": "sg-0b296cc646234b669",
+            "security_group_rule_id": "sgr-03cd2dba192b62f30",
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Module": "security",
+              "Name": "keycloak-dev-keycloak-egress-https",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Module": "security",
+              "Name": "keycloak-dev-keycloak-egress-https",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "to_port": 443
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "dependencies": [
+            "module.network.aws_vpc.main",
+            "module.security.aws_security_group.keycloak"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.security",
+      "mode": "managed",
+      "type": "aws_vpc_security_group_ingress_rule",
+      "name": "alb_http_from_admin",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "index_key": "68.32.112.68/32",
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:ec2:us-east-1:406207085797:security-group-rule/sgr-09c4bdee6e4ffa741",
+            "cidr_ipv4": "68.32.112.68/32",
+            "cidr_ipv6": null,
+            "description": "HTTP from 68.32.112.68/32 - redirected to HTTPS, no app traffic",
+            "from_port": 80,
+            "id": "sgr-09c4bdee6e4ffa741",
+            "ip_protocol": "tcp",
+            "prefix_list_id": null,
+            "referenced_security_group_id": null,
+            "security_group_id": "sg-0c19c09147f95c100",
+            "security_group_rule_id": "sgr-09c4bdee6e4ffa741",
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Module": "security",
+              "Name": "keycloak-dev-alb-http-68.32.112.68-32",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Module": "security",
+              "Name": "keycloak-dev-alb-http-68.32.112.68-32",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "to_port": 80
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "dependencies": [
+            "module.network.aws_vpc.main",
+            "module.security.aws_security_group.alb"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.security",
+      "mode": "managed",
+      "type": "aws_vpc_security_group_ingress_rule",
+      "name": "alb_https_from_admin",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "index_key": "68.32.112.68/32",
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:ec2:us-east-1:406207085797:security-group-rule/sgr-05a780a5f09543491",
+            "cidr_ipv4": "68.32.112.68/32",
+            "cidr_ipv6": null,
+            "description": "HTTPS from approved admin IP 68.32.112.68/32",
+            "from_port": 443,
+            "id": "sgr-05a780a5f09543491",
+            "ip_protocol": "tcp",
+            "prefix_list_id": null,
+            "referenced_security_group_id": null,
+            "security_group_id": "sg-0c19c09147f95c100",
+            "security_group_rule_id": "sgr-05a780a5f09543491",
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Module": "security",
+              "Name": "keycloak-dev-alb-https-68.32.112.68-32",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Module": "security",
+              "Name": "keycloak-dev-alb-https-68.32.112.68-32",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "to_port": 443
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "dependencies": [
+            "module.network.aws_vpc.main",
+            "module.security.aws_security_group.alb"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.security",
+      "mode": "managed",
+      "type": "aws_vpc_security_group_ingress_rule",
+      "name": "keycloak_from_alb",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:ec2:us-east-1:406207085797:security-group-rule/sgr-081413805b9cb1e6a",
+            "cidr_ipv4": null,
+            "cidr_ipv6": null,
+            "description": "Application traffic from the ALB only",
+            "from_port": 8080,
+            "id": "sgr-081413805b9cb1e6a",
+            "ip_protocol": "tcp",
+            "prefix_list_id": null,
+            "referenced_security_group_id": "sg-0c19c09147f95c100",
+            "security_group_id": "sg-0b296cc646234b669",
+            "security_group_rule_id": "sgr-081413805b9cb1e6a",
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Module": "security",
+              "Name": "keycloak-dev-keycloak-ingress-alb",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Module": "security",
+              "Name": "keycloak-dev-keycloak-ingress-alb",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "to_port": 8080
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "dependencies": [
+            "module.network.aws_vpc.main",
+            "module.security.aws_security_group.alb",
+            "module.security.aws_security_group.keycloak"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.security",
+      "mode": "managed",
+      "type": "aws_vpc_security_group_ingress_rule",
+      "name": "keycloak_health_from_alb",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "index_key": 0,
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:ec2:us-east-1:406207085797:security-group-rule/sgr-073fdd9bf73502197",
+            "cidr_ipv4": null,
+            "cidr_ipv6": null,
+            "description": "Health check probes from the ALB",
+            "from_port": 9000,
+            "id": "sgr-073fdd9bf73502197",
+            "ip_protocol": "tcp",
+            "prefix_list_id": null,
+            "referenced_security_group_id": "sg-0c19c09147f95c100",
+            "security_group_id": "sg-0b296cc646234b669",
+            "security_group_rule_id": "sgr-073fdd9bf73502197",
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Module": "security",
+              "Name": "keycloak-dev-keycloak-ingress-health",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Module": "security",
+              "Name": "keycloak-dev-keycloak-ingress-health",
+              "Project": "keycloak",
+              "Repository": "https://github.com/your-org/keycloak-aws"
+            },
+            "to_port": 9000
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "dependencies": [
+            "module.network.aws_vpc.main",
+            "module.security.aws_security_group.alb",
+            "module.security.aws_security_group.keycloak"
+          ]
+        }
+      ]
+    }
+  ],
+  "check_results": [
+    {
+      "object_kind": "var",
+      "config_addr": "module.network.var.vpc_cidr",
+      "status": "pass",
+      "objects": [
+        {
+          "object_addr": "module.network.var.vpc_cidr",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "object_kind": "var",
+      "config_addr": "module.compute.var.realm_name",
+      "status": "pass",
+      "objects": [
+        {
+          "object_addr": "module.compute.var.realm_name",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "object_kind": "var",
+      "config_addr": "var.project_name",
+      "status": "pass",
+      "objects": [
+        {
+          "object_addr": "var.project_name",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "object_kind": "var",
+      "config_addr": "module.compute.var.root_volume_size",
+      "status": "pass",
+      "objects": [
+        {
+          "object_addr": "module.compute.var.root_volume_size",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "object_kind": "var",
+      "config_addr": "module.alb.var.name_prefix",
+      "status": "pass",
+      "objects": [
+        {
+          "object_addr": "module.alb.var.name_prefix",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "object_kind": "var",
+      "config_addr": "module.alb.var.public_subnet_ids",
+      "status": "pass",
+      "objects": [
+        {
+          "object_addr": "module.alb.var.public_subnet_ids",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "object_kind": "var",
+      "config_addr": "module.security.var.allowed_admin_ips",
+      "status": "pass",
+      "objects": [
+        {
+          "object_addr": "module.security.var.allowed_admin_ips",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "object_kind": "var",
+      "config_addr": "module.compute.var.db_vendor",
+      "status": "pass",
+      "objects": [
+        {
+          "object_addr": "module.compute.var.db_vendor",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "object_kind": "var",
+      "config_addr": "module.kms.var.deletion_window_in_days",
+      "status": "pass",
+      "objects": [
+        {
+          "object_addr": "module.kms.var.deletion_window_in_days",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "object_kind": "var",
+      "config_addr": "module.network.var.public_subnet_cidrs",
+      "status": "pass",
+      "objects": [
+        {
+          "object_addr": "module.network.var.public_subnet_cidrs",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "object_kind": "var",
+      "config_addr": "module.alb.var.health_check_timeout",
+      "status": "pass",
+      "objects": [
+        {
+          "object_addr": "module.alb.var.health_check_timeout",
+          "status": "pass"
+        }
+      ]
+    }
+  ]
+}
