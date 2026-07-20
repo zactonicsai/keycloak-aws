@@ -1,0 +1,305 @@
+# =============================================================================
+# COMPUTE MODULE - variables.tf
+# =============================================================================
+
+variable "name_prefix" {
+  description = "Prefix for all compute resource names"
+  type        = string
+}
+
+# --- Networking inputs (from the network and security modules) ---
+
+variable "private_subnet_ids" {
+  description = "Private subnets the instances launch into"
+  type        = list(string)
+}
+
+variable "keycloak_security_group_id" {
+  description = "Security group attached to the instances"
+  type        = string
+}
+
+variable "target_group_arn" {
+  description = "ALB target group the ASG registers instances into"
+  type        = string
+}
+
+# --- Encryption inputs (from the KMS module) ---
+
+variable "ebs_kms_key_arn" {
+  description = "KMS key encrypting the root volume"
+  type        = string
+}
+
+variable "secrets_kms_key_arn" {
+  description = "KMS key encrypting the admin credentials secret"
+  type        = string
+}
+
+# --- Instance sizing ---
+
+variable "instance_type" {
+  description = <<-EOT
+    EC2 size. Keycloak is a Java app and is memory-hungry.
+
+    t3.small  (2GB) - bare minimum, will be sluggish
+    t3.medium (4GB) - good for dev and light use
+    t3.large  (8GB) - comfortable for small production
+    m6i.large (8GB) - production, no CPU burst credits to run out of
+
+    A note on t3: burstable instances earn CPU credits while idle and spend
+    them under load. Run out and you are throttled hard. Fine for dev,
+    risky for production traffic.
+  EOT
+  type        = string
+  default     = "t3.medium"
+}
+
+variable "java_heap_size" {
+  description = "Java heap. Use roughly half the instance RAM, leaving the rest for the OS."
+  type        = string
+  default     = "1536m"
+}
+
+variable "root_volume_size" {
+  description = "Root disk size in GB. Keycloak plus Java needs about 8GB; 30 gives headroom."
+  type        = number
+  default     = 30
+
+  validation {
+    condition     = var.root_volume_size >= 20
+    error_message = "root_volume_size must be at least 20 GB for the OS, Java, and Keycloak."
+  }
+}
+
+# --- Auto Scaling Group sizing ---
+
+variable "min_size" {
+  description = "Fewest instances the ASG will keep running"
+  type        = number
+  default     = 1
+}
+
+variable "max_size" {
+  description = "Most instances the ASG may run"
+  type        = number
+  default     = 1
+}
+
+variable "desired_capacity" {
+  description = "How many instances to run right now"
+  type        = number
+  default     = 1
+}
+
+variable "health_check_grace_period" {
+  description = <<-EOT
+    Seconds to ignore health checks after an instance launches.
+
+    Must be LONGER than the full boot: OS update, Java install, Keycloak
+    download, build step, and startup. That is typically 4-6 minutes.
+    Set this too low and the ASG kills instances mid-install, forever.
+  EOT
+  type        = number
+  default     = 600
+}
+
+variable "wait_for_capacity_timeout" {
+  description = "How long terraform apply waits for instances to pass health checks. 0 disables waiting."
+  type        = string
+  default     = "15m"
+}
+
+variable "min_healthy_percentage" {
+  description = "Percent of instances that must stay healthy during a rolling refresh"
+  type        = number
+  default     = 50
+}
+
+# --- Keycloak application settings ---
+
+variable "keycloak_version" {
+  description = "Keycloak release to install, e.g. 26.0.7. Check github.com/keycloak/keycloak/releases."
+  type        = string
+  default     = "26.0.7"
+}
+
+variable "keycloak_http_port" {
+  description = "Port Keycloak serves the app on"
+  type        = number
+  default     = 8080
+}
+
+variable "keycloak_management_port" {
+  description = "Port Keycloak serves health and metrics on"
+  type        = number
+  default     = 9000
+}
+
+variable "keycloak_hostname" {
+  description = <<-EOT
+    The PUBLIC URL users will type, e.g. https://keycloak.example.com
+
+    This must match how users actually reach Keycloak, because it gets baked
+    into tokens and redirect URLs. A mismatch here is the number one cause of
+    "invalid redirect_uri" errors and login loops.
+
+    With no domain, use the ALB's DNS name.
+  EOT
+  type        = string
+}
+
+variable "admin_username" {
+  description = "Bootstrap admin username. Avoid 'admin' if you can; it is the first thing attackers try."
+  type        = string
+  default     = "kcadmin"
+}
+
+variable "admin_password" {
+  description = "Admin password. LEAVE EMPTY to auto-generate a strong one (recommended)."
+  type        = string
+  default     = ""
+
+  # sensitive = true hides the value from all Terraform console output.
+  # It does NOT encrypt it in the state file, so the state still needs
+  # protecting. It only stops shoulder-surfing and CI log leaks.
+  sensitive = true
+}
+
+variable "db_vendor" {
+  description = <<-EOT
+    Database backend.
+
+    dev-file - embedded H2 on local disk. Data dies with the instance.
+               Fine for testing, never for production.
+    postgres - external PostgreSQL, normally RDS. Required for production
+               and for running more than one node.
+  EOT
+  type        = string
+  default     = "dev-file"
+
+  validation {
+    condition     = contains(["dev-file", "dev-mem", "postgres", "mysql", "mariadb"], var.db_vendor)
+    error_message = "db_vendor must be one of: dev-file, dev-mem, postgres, mysql, mariadb."
+  }
+}
+
+variable "secret_recovery_window_days" {
+  description = "Days a deleted secret stays recoverable. 0 deletes immediately (no undo)."
+  type        = number
+  default     = 7
+}
+
+# --- REALM IMPORT SETTINGS ---
+
+variable "realm_name" {
+  description = "Name of the realm to create or import"
+  type        = string
+  default     = "myrealm"
+
+  validation {
+    # Realm names appear in URLs, so restrict them to URL-safe characters.
+    condition     = can(regex("^[a-zA-Z0-9_-]+$", var.realm_name))
+    error_message = "realm_name may contain only letters, numbers, hyphens, and underscores."
+  }
+}
+
+variable "realm_file_path" {
+  description = <<-EOT
+    Path to your realm JSON export.
+
+    LEAVE EMPTY to use the conventional location:
+      realms/<realm_name>-realm.json
+
+    IF THE FILE IS MISSING, the module builds a sensible default realm
+    instead of failing. This is handled by fileexists() at plan time.
+    Check the realm_source output to see which one was actually used.
+  EOT
+  type        = string
+  default     = ""
+}
+
+variable "registration_allowed" {
+  description = "DEFAULT REALM ONLY: let visitors create their own accounts. Keep false for internal apps."
+  type        = bool
+  default     = false
+}
+
+variable "verify_email" {
+  description = "DEFAULT REALM ONLY: require email verification. Needs working SMTP settings."
+  type        = bool
+  default     = false
+}
+
+variable "create_default_user" {
+  description = "DEFAULT REALM ONLY: seed a starter user account"
+  type        = bool
+  default     = true
+}
+
+variable "default_user_name" {
+  description = "DEFAULT REALM ONLY: username of the seeded account"
+  type        = string
+  default     = "testuser"
+}
+
+variable "default_user_email" {
+  description = "DEFAULT REALM ONLY: email of the seeded account"
+  type        = string
+  default     = "testuser@example.com"
+}
+
+variable "default_client_redirect_uris" {
+  description = <<-EOT
+    DEFAULT REALM ONLY: URLs Keycloak may redirect to after login.
+
+    SECURITY: never use a bare "*" in production. An open redirect lets an
+    attacker capture authorization codes. List exact URLs.
+  EOT
+  type        = list(string)
+  default     = ["http://localhost:3000/*", "http://localhost:8080/*"]
+}
+
+variable "default_client_web_origins" {
+  description = "DEFAULT REALM ONLY: origins allowed to make cross-site browser requests (CORS)"
+  type        = list(string)
+  default     = ["http://localhost:3000", "http://localhost:8080"]
+}
+
+variable "realm_s3_bucket" {
+  description = "Optional S3 bucket holding a realm file, if you prefer that over a local file"
+  type        = string
+  default     = ""
+}
+
+variable "realm_s3_key" {
+  description = "Object key of the realm file inside realm_s3_bucket"
+  type        = string
+  default     = ""
+}
+
+# --- Monitoring ---
+
+variable "enable_cloudwatch_agent" {
+  description = "Ship Keycloak logs and metrics to CloudWatch"
+  type        = bool
+  default     = true
+}
+
+variable "enable_detailed_monitoring" {
+  description = "1-minute EC2 metrics instead of 5-minute. Costs slightly more."
+  type        = bool
+  default     = false
+}
+
+variable "log_retention_days" {
+  description = "Days to keep CloudWatch logs. Without a limit they are kept forever and billed forever."
+  type        = number
+  default     = 30
+}
+
+variable "tags" {
+  description = "Labels applied to compute resources"
+  type        = map(string)
+  default     = {}
+}

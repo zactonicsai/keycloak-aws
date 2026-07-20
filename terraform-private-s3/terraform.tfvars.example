@@ -1,0 +1,4 @@
+aws_region         = "us-east-1"
+vpc_id             = "vpc-0123456789abcdef"
+bucket_name_prefix = "zac-private-bucket"
+environment        = "Development"

@@ -1,0 +1,52 @@
+# =============================================================================
+# .gitignore for Terraform
+# =============================================================================
+
+# --- STATE FILES: NEVER COMMIT THESE ---
+# State files contain PLAINTEXT SECRETS: passwords, private keys, tokens.
+# They live in S3 instead. A local copy in git is a security incident.
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+
+# --- Provider plugins (hundreds of MB, re-downloaded by terraform init) ---
+.terraform/
+.terraform.lock.hcl.bak
+
+# --- Crash logs (may contain sensitive values) ---
+crash.log
+crash.*.log
+
+# --- Variable files that may hold secrets ---
+# NOTE: terraform.tfvars IS committed in this project on purpose. It holds
+# only your IP address, no secrets. But these variants often hold secrets:
+*.auto.tfvars
+*secret*.tfvars
+*private*.tfvars
+secrets.tfvars
+
+# --- Saved plan files (contain full resource values, including secrets) ---
+*.tfplan
+tfplan
+plan.out
+
+# --- Realm files with real credentials ---
+# The .example file is safe. Exported realms may contain user data or
+# client secrets, so exclude real ones by default.
+realms/*-realm.json
+!realms/*.example
+
+# --- Certificates and keys ---
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+
+# --- OS and editor noise ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*~
