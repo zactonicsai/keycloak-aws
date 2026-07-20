@@ -469,16 +469,80 @@ resource "aws_lb_listener" "http_redirect" {
 #
 # Two locks are better than one, especially when a single careless edit can
 # open the first.
-resource "aws_lb_listener_rule" "restrict_admin_console" {
+# -----------------------------------------------------------------------------
+# AN IMPORTANT LIMITATION: ALB CONDITIONS CANNOT SAY "NOT"
+# -----------------------------------------------------------------------------
+# There is no "not_source_ip" or "deny" in an ALB listener rule. The available
+# condition types are only: host_header, http_header, http_request_method,
+# path_pattern, query_string, and source_ip. All of them are positive matches,
+# and multiple condition blocks inside one rule are combined with AND.
+#
+# So we cannot write "if path is /admin AND ip is NOT mine -> block."
+#
+# We express it with TWO rules instead, relying on the fact that the ALB
+# evaluates rules in priority order and STOPS at the first match:
+#
+#   Priority 100 - path is /admin AND source ip IS mine   -> forward (allow)
+#   Priority 110 - path is /admin (any remaining ip)      -> 403 (deny)
+#
+# A request from your IP matches rule 100 and is forwarded; evaluation stops
+# there and rule 110 is never reached. A request from any other IP fails
+# rule 100 (the source_ip condition does not match), falls through to rule
+# 110, matches on path alone, and gets a 403.
+#
+# The order is what creates the "NOT". Rule 110 MUST have a higher priority
+# number than rule 100, or the deny would fire first and lock you out too.
+# -----------------------------------------------------------------------------
+
+# --- Rule 1 (priority 100): explicitly ALLOW admin paths from approved IPs ---
+resource "aws_lb_listener_rule" "admin_allow_from_approved_ips" {
   count = var.restrict_admin_paths ? 1 : 0
 
   listener_arn = aws_lb_listener.https.arn
 
-  # Lower priority number = evaluated earlier. Leaving gaps (100, 200, 300)
-  # makes it easy to insert rules later without renumbering everything.
+  # Lower number = evaluated earlier. Gaps (100, 110, 200) leave room to
+  # insert rules later without renumbering everything.
   priority = 100
 
-  # If the conditions match, return a flat 403 instead of forwarding.
+  # Matching requests go to Keycloak as normal.
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.keycloak.arn
+  }
+
+  # Condition 1: the path is administrative.
+  condition {
+    path_pattern {
+      values = var.admin_path_patterns
+    }
+  }
+
+  # Condition 2: the request came from an approved address.
+  #
+  # Both condition blocks must match (they are ANDed), so this rule fires
+  # only for an admin path AND an approved IP.
+  #
+  # IMPORTANT SUBTLETY: source_ip matches the real client IP as the ALB sees
+  # it. It deliberately IGNORES the X-Forwarded-For header, which a client
+  # can trivially forge. That is exactly what makes this check trustworthy.
+  condition {
+    source_ip {
+      values = var.allowed_admin_cidrs
+    }
+  }
+}
+
+# --- Rule 2 (priority 110): DENY every other request to an admin path ---
+# Anything that reaches this rule already failed rule 100, which means the
+# source IP was not on the approved list.
+resource "aws_lb_listener_rule" "admin_deny_everyone_else" {
+  count = var.restrict_admin_paths ? 1 : 0
+
+  listener_arn = aws_lb_listener.https.arn
+
+  # MUST be a higher number than the allow rule above.
+  priority = 110
+
   action {
     type = "fixed-response"
 
@@ -489,24 +553,11 @@ resource "aws_lb_listener_rule" "restrict_admin_console" {
     }
   }
 
-  # Condition 1: the request path looks like an admin path.
+  # Path only. No IP condition, because by this point we already know the IP
+  # was not approved.
   condition {
     path_pattern {
       values = var.admin_path_patterns
-    }
-  }
-
-  # Condition 2: the source IP is NOT one of ours.
-  #
-  # Multiple condition blocks are combined with AND, so this rule fires only
-  # when the path is administrative AND the IP is unapproved.
-  #
-  # IMPORTANT SUBTLETY: source_ip matches the real client IP as seen by the
-  # ALB. It deliberately ignores the X-Forwarded-For header, which a client
-  # can forge. That is what makes this trustworthy.
-  condition {
-    not_source_ip {
-      values = var.allowed_admin_cidrs
     }
   }
 }

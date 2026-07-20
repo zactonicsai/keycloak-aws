@@ -35,18 +35,16 @@ terraform {
     #   <project>-<env>-tfstate-<account-id>-<region>
     # Bucket names are GLOBALLY unique across every AWS customer on earth,
     # which is why people bolt the account ID onto the end.
-    # >>> ACTION REQUIRED BEFORE USING PROD <<<
-    # This currently points at the DEV bucket, which has "dev" in its name.
-    # That works technically — the state key is different, so dev and prod
-    # won't overwrite each other — but it is not what you want long term.
+    # Both dev and prod use THIS SAME BUCKET, separated by the `key` below.
+    # That is a deliberate choice here and it is safe, because the state key
+    # differs — dev writes to keycloak/dev/, prod writes to keycloak/prod/.
+    # They cannot overwrite each other.
     #
-    # Best practice is a separate bucket per environment, because the bucket
-    # is the security boundary. Anyone who can read the dev bucket can read
-    # prod's state (and prod's secrets) if they share one.
-    #
-    # Create a prod bucket and swap this line:
-    #   BUCKET_NAME=cloud-team-playbook-prod-tfstate-406207085797-us-east-1 \
-    #     ./scripts/bootstrap-state-bucket.sh
+    # THE TRADEOFF, so you know what you are accepting: the bucket is the
+    # access boundary. Anyone with read access to this bucket can read BOTH
+    # state files, and state files contain plaintext secrets. If dev and prod
+    # ever need different people to have access, split them into two buckets
+    # at that point.
     bucket = "cloud-team-playbook-dev-tfstate-406207085797-us-east-1"
 
     # -------------------------------------------------------------------------
@@ -92,12 +90,14 @@ terraform {
     # and is the current recommended practice — one less resource to manage.
     use_lockfile = true
 
-    # LEGACY ALTERNATIVE (Terraform < 1.10):
-    # If you're on an older Terraform, delete the use_lockfile line above and
-    # uncomment this instead. It requires a DynamoDB table with a partition
-    # key named exactly "LockID" of type String.
+    # NOTE: this project uses S3 ONLY. There is no DynamoDB table and none is
+    # needed. Native S3 locking (use_lockfile) writes a small .tflock object
+    # next to the state file and deletes it when the run finishes.
     #
-    # dynamodb_table = "cloud-team-playbook-dev-tfstate-locks"
+    # This REQUIRES Terraform 1.10 or newer. Check with: terraform version
+    # If you are on an older version, upgrade rather than adding DynamoDB —
+    # the S3-only approach is one less resource to create, pay for, and
+    # forget about.
   }
 }
 

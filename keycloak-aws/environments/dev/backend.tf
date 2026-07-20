@@ -80,12 +80,14 @@ terraform {
     # and is the current recommended practice — one less resource to manage.
     use_lockfile = true
 
-    # LEGACY ALTERNATIVE (Terraform < 1.10):
-    # If you're on an older Terraform, delete the use_lockfile line above and
-    # uncomment this instead. It requires a DynamoDB table with a partition
-    # key named exactly "LockID" of type String.
+    # NOTE: this project uses S3 ONLY. There is no DynamoDB table and none is
+    # needed. Native S3 locking (use_lockfile) writes a small .tflock object
+    # next to the state file and deletes it when the run finishes.
     #
-    # dynamodb_table = "cloud-team-playbook-dev-tfstate-locks"
+    # This REQUIRES Terraform 1.10 or newer. Check with: terraform version
+    # If you are on an older version, upgrade rather than adding DynamoDB —
+    # the S3-only approach is one less resource to create, pay for, and
+    # forget about.
   }
 }
 

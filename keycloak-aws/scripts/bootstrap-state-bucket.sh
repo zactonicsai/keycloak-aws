@@ -2,16 +2,28 @@
 # =============================================================================
 # bootstrap-state-bucket.sh
 # =============================================================================
-# Creates (or verifies) the S3 bucket that stores Terraform state.
+# Verifies (and if necessary creates) the S3 bucket that stores Terraform state.
+#
+# THIS PROJECT USES S3 ONLY. There is no DynamoDB lock table. Locking is
+# handled natively by S3 via the `use_lockfile = true` setting in backend.tf,
+# which requires Terraform 1.10 or newer.
+#
+# YOUR BUCKET ALREADY EXISTS (created 2026-07-13):
+#   cloud-team-playbook-dev-tfstate-406207085797-us-east-1
+#
+# So this script will mostly SKIP creation and instead confirm the safety
+# settings are correct: versioning, encryption, public access block, and
+# TLS-only. Those are worth verifying because a state bucket without them
+# is a real risk — state files hold plaintext secrets.
 #
 # WHY A SHELL SCRIPT INSTEAD OF TERRAFORM?
 # Chicken-and-egg. Terraform stores its memory in this bucket, so the bucket
 # has to exist BEFORE Terraform runs for the first time. You cannot ask
 # Terraform to create the thing that holds Terraform's own state.
 #
-# Run this ONCE per AWS account. It is safe to run again — every step checks
-# whether the work is already done first (this property is called being
-# "idempotent," which just means "running it twice does no harm").
+# Safe to run repeatedly — every step checks whether the work is already done
+# first (this property is called being "idempotent," which just means
+# "running it twice does no harm").
 #
 # USAGE:
 #   chmod +x scripts/bootstrap-state-bucket.sh
@@ -219,14 +231,30 @@ info "Next step — initialize Terraform:"
 echo "    cd environments/dev"
 echo "    terraform init"
 echo ""
-info "If you are on Terraform older than 1.10, you also need a DynamoDB lock"
-info "table. Check your version with 'terraform version'. If it's older,"
-info "uncomment the dynamodb_table line in backend.tf and run:"
-echo ""
-echo "    aws dynamodb create-table \\"
-echo "      --table-name cloud-team-playbook-dev-tfstate-locks \\"
-echo "      --attribute-definitions AttributeName=LockID,AttributeType=S \\"
-echo "      --key-schema AttributeName=LockID,KeyType=HASH \\"
-echo "      --billing-mode PAY_PER_REQUEST \\"
-echo "      --region ${AWS_REGION}"
+
+# -----------------------------------------------------------------------------
+# TERRAFORM VERSION CHECK
+# -----------------------------------------------------------------------------
+# backend.tf uses `use_lockfile = true`, which is S3-native state locking.
+# It was added in Terraform 1.10. On anything older, init will fail with an
+# "Unsupported argument" error, so check now rather than after a confusing
+# failure.
+if command -v terraform >/dev/null 2>&1; then
+  TF_VER=$(terraform version -json 2>/dev/null | grep -o '"terraform_version":"[^"]*"' | cut -d'"' -f4)
+  if [[ -n "$TF_VER" ]]; then
+    # sort -V compares version numbers properly (so 1.10 > 1.9, which a plain
+    # string comparison would get wrong). If the lowest of the two is 1.10.0,
+    # then our version is at least 1.10.0.
+    LOWEST=$(printf '%s\n1.10.0\n' "$TF_VER" | sort -V | head -1)
+    if [[ "$LOWEST" == "1.10.0" ]]; then
+      ok "Terraform ${TF_VER} supports S3-native locking (use_lockfile)."
+    else
+      warn "Terraform ${TF_VER} is older than 1.10 and does NOT support use_lockfile."
+      warn "Upgrade Terraform: https://developer.hashicorp.com/terraform/install"
+      warn "This project is S3-only by design and does not use a DynamoDB lock table."
+    fi
+  fi
+else
+  warn "Terraform is not installed yet. Install 1.10 or newer before running init."
+fi
 echo ""

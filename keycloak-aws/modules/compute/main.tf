@@ -494,7 +494,6 @@ resource "aws_launch_template" "keycloak" {
       volume_type = "gp3"
 
       # Encrypt the disk with our KMS key.
-      # Note this is the STRING "true", not a boolean. The AWS API quirks here.
       encrypted  = true
       kms_key_id = var.ebs_kms_key_arn
 
@@ -619,11 +618,18 @@ resource "aws_autoscaling_group" "keycloak" {
       # instance, 50% still means a brief gap; with two or more it is smooth.
       min_healthy_percentage = var.min_healthy_percentage
 
-      instance_warmup = var.health_check_grace_period
+      # instance_warmup expects a STRING of seconds, even though it is a
+      # number conceptually. tostring() converts our numeric variable so the
+      # provider does not reject it with a type error.
+      instance_warmup = tostring(var.health_check_grace_period)
     }
 
-    # Also refresh when user_data changes, not just the AMI.
-    triggers = ["tag"]
+    # NOTE: no `triggers` argument here. A change to the launch template
+    # (including user_data, which is part of it) ALREADY starts an instance
+    # refresh by default. `triggers` is only for adding EXTRA things to watch
+    # that would not otherwise cause one, and it accepts launch template
+    # attribute names such as "launch_template" or "desired_capacity" — not
+    # arbitrary strings.
   }
 
   # ASG tags use a different, more verbose format than everywhere else.

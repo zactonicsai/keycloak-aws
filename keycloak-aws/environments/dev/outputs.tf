@@ -70,7 +70,7 @@ output "connect_via_ssm" {
 
 output "next_steps" {
   description = "What to do after apply finishes"
-  value = <<-EOT
+  value       = <<-EOT
 
     ===================================================================
     DEPLOYMENT COMPLETE

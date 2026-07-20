@@ -126,7 +126,7 @@ terraform version   # must say 1.10.0 or higher
 aws --version
 ```
 
-> **Why 1.10?** Older versions need a separate DynamoDB table for state locking. Version 1.10 added built-in locking, which is one less thing to manage. If you're stuck on an older version, see [Troubleshooting](#8-troubleshooting).
+> **Why 1.10 specifically?** This project stores state in S3 and locks it using S3 itself (`use_lockfile`), a feature added in 1.10. Older Terraform needs a separate DynamoDB table for locking; we deliberately avoid that, so **1.10 is a hard requirement here, not a suggestion.** On an older version `terraform init` will fail — see [Troubleshooting](#8-troubleshooting).
 
 ### Step 2 — Log in to AWS
 
@@ -151,9 +151,15 @@ aws sts get-caller-identity
 
 You should see account `406207085797`. **If you see a different number, stop.** You're pointed at the wrong AWS account and would build things in the wrong place.
 
-### Step 3 — Create the state bucket
+### Step 3 — Verify the state bucket
 
-Terraform needs a place to store its memory. That place is an S3 bucket, and it has to exist *before* Terraform runs the first time.
+Terraform needs a place to store its memory. That place is an S3 bucket:
+
+```
+cloud-team-playbook-dev-tfstate-406207085797-us-east-1
+```
+
+**This bucket already exists** (created 2026-07-13), so there's nothing to create. But run this anyway to confirm the safety settings are right:
 
 ```bash
 cd keycloak-aws
@@ -161,15 +167,20 @@ chmod +x scripts/bootstrap-state-bucket.sh
 ./scripts/bootstrap-state-bucket.sh
 ```
 
-This creates `cloud-team-playbook-dev-tfstate-406207085797-us-east-1` with:
-- **Versioning** — your undo button
-- **Encryption** — because state files contain passwords
-- **Public access blocked** — all four switches
-- **HTTPS required** — no plaintext transfer
+It checks — and fixes if needed — four things:
 
-Safe to run twice. If the bucket already exists, it just checks the settings.
+| Setting | Why it matters |
+|---|---|
+| **Versioning** | Your undo button if state gets corrupted |
+| **Encryption** | State files contain plaintext passwords |
+| **Public access blocked** | All four switches, no exceptions |
+| **HTTPS required** | No plaintext transfer over the network |
 
-> **Chicken and egg:** why can't Terraform make this bucket? Because Terraform stores its memory *in* the bucket. It can't remember creating the thing it uses to remember. So we make it by hand, once.
+The script skips creation when the bucket is already there, so it's safe to run as many times as you like.
+
+> **This project uses S3 only.** There's no DynamoDB table. Locking happens natively in S3 via `use_lockfile = true`, which needs **Terraform 1.10+**. That's one less resource to create, pay for, and forget about. The script checks your Terraform version at the end and warns you if it's too old.
+
+> **Chicken and egg:** why can't Terraform make this bucket? Because Terraform stores its memory *in* the bucket. It can't remember creating the thing it uses to remember. So it's made outside Terraform, once.
 
 ### Step 4 — Set your IP address
 
@@ -331,6 +342,34 @@ Each module has the same three files:
 
 `dev` and `prod` are separate folders with separate state files. This means **you cannot accidentally destroy production while testing.** They don't know about each other.
 
+### Where state is stored
+
+Both environments use the **same S3 bucket**, separated by the key (the path inside the bucket):
+
+```
+s3://cloud-team-playbook-dev-tfstate-406207085797-us-east-1/
+├── keycloak/dev/terraform.tfstate     ← environments/dev
+└── keycloak/prod/terraform.tfstate    ← environments/prod
+```
+
+Different keys means they can never overwrite each other. Applying dev cannot touch prod's state.
+
+**What is "state"?** When Terraform builds something, it writes down what it built. That record maps `aws_instance.keycloak` in your code to `i-0abc123...` in real AWS. Without it, Terraform has amnesia — run `apply` twice and it builds everything twice.
+
+**Why not keep it on your laptop?** Three reasons:
+
+1. Your laptop dies → Terraform forgets it owns \$100/month of AWS resources that nobody can now cleanly delete
+2. Two people apply at once → corrupted state
+3. **State files contain plaintext secrets** — passwords, keys, tokens
+
+The S3 backend fixes all three: encrypted, versioned, and locked while someone is working.
+
+**Locking, S3-only.** While one person runs `apply`, Terraform writes a small `.tflock` file next to the state. Anyone else who tries gets blocked instead of stomping on it. The lock is deleted when the run finishes.
+
+Older setups used a DynamoDB table for this. Terraform 1.10 moved it into S3 itself, so **this project needs no DynamoDB table at all.**
+
+> **The tradeoff of sharing one bucket:** the bucket is the access boundary. Anyone who can read this bucket can read *both* state files — and therefore both environments' secrets. That's fine when the same people manage dev and prod. Split into two buckets the moment that stops being true.
+
 ---
 
 ## 5. Every Piece in Detail
@@ -429,7 +468,22 @@ Check http://<server>:9000/health/ready every 30 seconds
 - Port 443 → forward to Keycloak
 - Port 80 → redirect to 443 (never serves real traffic)
 
-**The listener rule** is the second lock: if the path starts with `/admin` **and** the IP isn't yours, return 403. Independent of the security group, so one careless edit can't open the door.
+**The listener rules** are the second lock — and there are **two** of them, for a reason worth understanding.
+
+An ALB listener rule cannot say "NOT". The only condition types available are `host_header`, `http_header`, `http_request_method`, `path_pattern`, `query_string`, and `source_ip` — all positive matches, all ANDed together. There is no `not_source_ip` and no deny action.
+
+So "block /admin from everyone except me" is expressed as two rules that rely on the ALB stopping at the first match:
+
+| Priority | Condition | Action |
+|---|---|---|
+| 100 | path is `/admin` **AND** source IP is yours | forward |
+| 110 | path is `/admin` (any remaining IP) | **403** |
+
+Your request matches rule 100 and never reaches 110. Anyone else fails rule 100's IP condition, falls through, matches 110 on path alone, and gets a 403.
+
+**The order is what creates the "NOT."** Rule 110 must have the *higher* number, or the deny would fire first and lock you out too.
+
+> `source_ip` matches the real client IP as the ALB sees it, and deliberately ignores `X-Forwarded-For` — which a client can trivially forge. That's what makes this check trustworthy.
 
 ### 5.5 The EC2 instance
 
@@ -669,18 +723,19 @@ terraform init -reconfigure
 
 ### Terraform older than 1.10
 
-`use_lockfile` won't work. In `backend.tf`, delete that line and uncomment `dynamodb_table`. Then:
+`terraform init` fails with **"Unsupported argument: use_lockfile"**.
+
+This project uses S3-native state locking, added in Terraform 1.10. **Upgrade Terraform:**
 
 ```bash
-aws dynamodb create-table \
-  --table-name cloud-team-playbook-dev-tfstate-locks \
-  --attribute-definitions AttributeName=LockID,AttributeType=S \
-  --key-schema AttributeName=LockID,KeyType=HASH \
-  --billing-mode PAY_PER_REQUEST \
-  --region us-east-1
+brew upgrade terraform          # Mac
+choco upgrade terraform         # Windows
+sudo apt update && sudo apt install --only-upgrade terraform   # Linux
+
+terraform version               # confirm 1.10.0+
 ```
 
-The partition key must be named exactly `LockID`.
+> **Why not just add a DynamoDB table instead?** That's the older approach and it works, but it means creating, paying for, and remembering another resource. Upgrading is simpler and it's where Terraform is going. This project is S3-only by design.
 
 ### Realm didn't import
 
@@ -758,7 +813,7 @@ enable_deletion_protection = true
 kms_deletion_window_days = 30
 ```
 
-**5. Separate state bucket** — prod should not share dev's bucket. Anyone who can read dev's state can read prod's secrets.
+**5. Consider splitting the state bucket** — dev and prod currently share `cloud-team-playbook-dev-tfstate-406207085797-us-east-1`, separated only by key path. That is safe from an *overwrite* standpoint (different keys can't collide), but the bucket is the **access** boundary: anyone who can read it can read both environments' secrets. Split them when dev and prod need different access lists.
 
 **6. Multiple instances** — needs PostgreSQL and clustering config first.
 
@@ -822,11 +877,11 @@ What protects this deployment:
 - ✅ Runs as a non-root user with no login shell
 - ✅ TLS 1.2 minimum
 - ✅ Restricted outbound traffic
-- ✅ State file encrypted, versioned, locked
+- ✅ State in S3: encrypted, versioned, public access blocked, TLS-only, natively locked
 
 **What still needs your attention:**
 
 - ⚠️ Self-signed cert → get a domain
 - ⚠️ H2 database → move to RDS
 - ⚠️ Your IP will change → update `terraform.tfvars`
-- ⚠️ Prod shares dev's state bucket → split them
+- ⚠️ Dev and prod share one state bucket → split when access needs differ
