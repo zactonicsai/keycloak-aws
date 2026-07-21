@@ -42,19 +42,24 @@ output "realm_source" {
   value       = module.compute.realm_source
 }
 
-output "autoscaling_group_name" {
-  description = "ASG name, for forcing an instance refresh"
-  value       = module.compute.autoscaling_group_name
+output "instance_id" {
+  description = "EC2 instance ID, for SSM sessions and troubleshooting"
+  value       = module.compute.instance_id
+}
+
+output "instance_private_ip" {
+  description = "Private IP of the instance"
+  value       = module.compute.instance_private_ip
 }
 
 output "database_mode" {
   description = "Which database Keycloak is actually using"
-  value       = var.use_rds ? "PostgreSQL (RDS) at ${local.db_host}:${local.db_port}/${local.db_name}" : "Embedded H2 - DATA IS LOST ON INSTANCE REPLACEMENT"
+  value = var.use_rds ? "PostgreSQL (RDS) at ${local.db_host}:${local.db_port}/${local.db_name}" : "Embedded H2 - DATA IS LOST ON INSTANCE REPLACEMENT"
 }
 
 output "connect_via_ssm" {
   description = "Get a shell on the instance without SSH"
-  value       = "aws ssm start-session --target $(aws ec2 describe-instances --filters 'Name=tag:Name,Values=${local.name_prefix}-keycloak' 'Name=instance-state-name,Values=running' --query 'Reservations[0].Instances[0].InstanceId' --output text)"
+  value       = "aws ssm start-session --target ${module.compute.instance_id}"
 }
 
 output "next_steps" {

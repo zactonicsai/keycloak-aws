@@ -228,7 +228,7 @@ Separate because the database should be rebuilt approximately **never**, while K
 
 ### 03-keycloak — the disposable layer
 
-ALB, certificate, target group, listeners, launch template, ASG, IAM role, admin secret, realm S3 bucket.
+ALB, certificate, target group, listeners, launch template, **EC2 instance**, IAM role, admin secret, realm S3 bucket.
 
 Destroy and rebuild this freely. Nothing here holds state you can't recreate in 10 minutes.
 
@@ -349,65 +349,45 @@ Project 03 can't read project 01's state. Either:
 
 Project 01 doesn't export what a downstream project wants. Add the output to `01-network/outputs.tf` and re-apply project 01.
 
-### "Error: waiting for Auto Scaling Group capacity satisfied"
+### The instance died and nothing replaced it
 
-```
-timeout while waiting for state to become 'ok'
-(last state: 'want at least 1 healthy instance(s), have 0')
-```
+**This is expected.** There is no Auto Scaling Group in this stack, so a crashed instance stays crashed until you act.
 
-**First: is the wait even needed? No.** It's purely a convenience — it makes `terraform apply` block until Keycloak actually answers. Set it to `0` and apply returns in seconds while the instance boots normally in the background:
-
-```hcl
-# 03-keycloak/terraform.tfvars
-wait_for_capacity_timeout = "0"
-```
-
-Nothing is built differently. Terraform just stops watching.
-
-**But the timeout is usually a symptom, not the problem.** Run the diagnostic:
+Check what happened:
 
 ```bash
-./scripts/diagnose-asg.sh
+cd 03-keycloak
+terraform output instance_id
+aws ec2 describe-instance-status --instance-id <id> --include-all-instances
 ```
 
-It checks four things and tells you which case you're in:
+To rebuild it:
 
-| What you see | What it means | Fix |
+```bash
+terraform taint module.compute.aws_instance.keycloak
+terraform apply
+```
+
+`create_before_destroy` is set, so the replacement boots before the old one is removed.
+
+**Why no ASG?** An ASG for a single instance brought a failure mode that outweighed its benefit: if its health-check grace period was shorter than the boot took, it would terminate a still-installing instance and start over — forever. That loop produced `"want at least 1 healthy instance, have 0"` with no indication of the cause.
+
+| | With ASG | Without (current) |
 |---|---|---|
-| Target health = `healthy` | It worked; apply stopped watching too early | Re-run apply, or raise the timeout |
-| Repeated terminations in ASG activity | **Kill/respawn loop** | Raise `health_check_grace_period` |
-| Target health = `unhealthy`, instance alive | Keycloak failed to start | Read the boot log |
-| No instance at all | Terminated mid-boot | Raise `health_check_grace_period` |
+| Self-heals a crash | ✅ | ❌ alarm only |
+| Kill/respawn loop risk | ⚠️ **yes** | ✅ none |
+| Boot can take as long as it needs | ❌ | ✅ |
+| Failure message is clear | ❌ | ✅ |
+| Rolling replacement | ✅ | ❌ brief outage |
 
-**The kill/respawn loop** is the nasty one. If `health_check_grace_period` is shorter than the boot takes, the ASG decides a still-installing instance is broken, terminates it, and launches a replacement that starts from zero. Forever. Terraform reports "have 0 healthy" because it's watching that loop.
+**What replaced the self-healing:**
 
-**What I changed to fix this:**
+- **Status-check alarm** (`enable_status_alarm`) — tells you when the instance fails. Add an SNS topic to `alarm_sns_topic_arns` to actually get notified; otherwise it just turns red in the console.
+- **Auto-recovery** (`enable_auto_recovery`) — restarts the instance on new hardware when the *AWS host* fails, keeping the same instance ID, private IP, and volumes.
 
-| Setting | Was | Now | Why |
-|---|---|---|---|
-| `health_check_grace_period` | 600s | **900s** | Old value was shorter than a slow boot |
-| `wait_for_capacity_timeout` | 15m | **25m** | Worst-case boot was ~18 min |
-| `health_check_interval` | 30s | **15s** | Detects a healthy instance twice as fast |
-| `dnf update -y` | ran | **removed** | Cost 2–5 min for no benefit |
+> ⚠️ Auto-recovery only handles **hardware** failure. If Keycloak itself crashes or hangs while the instance stays up, nothing recovers it automatically. That's the tradeoff you accepted by removing the ASG.
 
-Removing the full OS update was the biggest win. The AMI is already the newest Amazon Linux 2023 (the data source looks up `most_recent = true`), so updating on the boot critical path bought almost nothing. Measured budget went from **7–18 min** to **4.5–12 min**.
-
-If you need guaranteed-latest patches, use SSM Patch Manager on a schedule instead of on boot.
-
-**Reading the boot log.** Every step now prints elapsed seconds, so you can see exactly which one is slow:
-
-```bash
-aws ssm start-session --target <instance-id>
-sudo cat /var/log/user-data.log
-```
-
-```
-[+0s]   --- STEP 1: Installing packages ---
-[+62s]  --- STEP 3: Downloading Keycloak 26.0.7 ---
-[+141s] --- STEP 7: Running the Keycloak build step ---
-[+280s] --- STEP 9: Waiting for Keycloak to report healthy ---
-```
+**If you want self-healing back**, the ASG is the right tool — but set `health_check_grace_period` to at least 900s so it can't kill instances mid-boot.
 
 ### 503 from the load balancer
 
@@ -500,7 +480,10 @@ cd 03-keycloak && terraform output -raw get_admin_password
 cd 02-database && terraform output -raw get_db_password
 
 # Shell on the instance (no SSH)
-aws ssm start-session --target <instance-id>
+aws ssm start-session --target $(terraform output -raw instance_id)
+
+# Rebuild the instance (no ASG, so this is manual)
+terraform taint module.compute.aws_instance.keycloak && terraform apply
 
 # Tunnel to the database (no inbound rule needed)
 aws ssm start-session --target <instance-id> \

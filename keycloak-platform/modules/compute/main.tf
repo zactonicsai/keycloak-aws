@@ -651,21 +651,15 @@ resource "aws_launch_template" "keycloak" {
     enabled = var.enable_detailed_monitoring
   }
 
-  # Copy tags onto the instances and volumes the template creates.
-  # Without these blocks the instances come out untagged and unidentifiable.
-  tag_specifications {
-    resource_type = "instance"
-    tags = merge(var.tags, {
-      Name = "${var.name_prefix}-keycloak"
-    })
-  }
-
-  tag_specifications {
-    resource_type = "volume"
-    tags = merge(var.tags, {
-      Name = "${var.name_prefix}-keycloak-volume"
-    })
-  }
+  # NOTE: no tag_specifications blocks here.
+  #
+  # Those existed for the Auto Scaling Group, which used the template to
+  # create instances and needed to be told how to tag them. Now that we
+  # create the instance directly with aws_instance, tags are set there via
+  # `tags` and `volume_tags`.
+  #
+  # Keeping both would be a conflict: the template's tags and the instance's
+  # tags would fight, producing a permanent diff on every plan.
 
   lifecycle {
     create_before_destroy = true
@@ -678,101 +672,174 @@ resource "aws_launch_template" "keycloak" {
 
 
 # =============================================================================
-# PART 5: THE AUTO SCALING GROUP
+# PART 5: THE EC2 INSTANCE
 # =============================================================================
-# An ASG keeps a target number of instances running. If one dies or fails its
-# health check, the ASG destroys it and builds a replacement automatically.
+# A single, directly-managed instance. No Auto Scaling Group.
 #
-# WHY USE AN ASG FOR A SINGLE SERVER? Self-healing. With a plain
-# aws_instance, a crashed server stays crashed until a human notices. With an
-# ASG set to exactly 1, it repairs itself within minutes. The ASG is free;
-# you pay only for the instances.
-resource "aws_autoscaling_group" "keycloak" {
-  name_prefix = "${var.name_prefix}-keycloak-"
-
-  # PRIVATE subnets. The instances get no public IP and cannot be reached
-  # from the internet directly.
-  vpc_zone_identifier = var.private_subnet_ids
-
-  min_size         = var.min_size
-  max_size         = var.max_size
-  desired_capacity = var.desired_capacity
-
+# WHAT YOU GIVE UP BY REMOVING THE ASG:
+#
+#   Self-healing. If this instance crashes or Keycloak hangs, it STAYS DOWN
+#   until a human notices and acts. An ASG would have replaced it in minutes.
+#   See the CloudWatch alarm at the bottom of this file - it cannot fix the
+#   problem, but it will tell you.
+#
+#   Rolling replacement. Changing the launch template used to trigger a
+#   gradual instance refresh. Now a template change replaces this instance
+#   directly, which means a short outage while the new one boots.
+#
+# WHAT YOU GAIN:
+#
+#   No kill/respawn loop. This was the real problem: if the ASG's health
+#   check grace period was shorter than the boot, it would terminate a
+#   still-installing instance and start over, forever. A plain instance
+#   boots once and stays put, however long it takes.
+#
+#   Simpler failures. "The instance is broken" instead of "the ASG has
+#   0 healthy instances and I cannot tell you why."
+#
+#   Faster applies. No waiting on capacity to be satisfied.
+#
+# The launch template above is still used - aws_instance can consume one,
+# which keeps all the disk, metadata, and user_data configuration in one
+# place rather than duplicating it here.
+resource "aws_instance" "keycloak" {
+  # Use the launch template instead of restating every setting. This is why
+  # the template survives the ASG removal: it still holds the AMI, instance
+  # type, IAM profile, security groups, EBS config, IMDSv2 settings, and
+  # user_data.
   launch_template {
     id = aws_launch_template.keycloak.id
-    # "$Latest" always uses the newest version of the template.
-    # For production, consider pinning to a specific version number so a
-    # template edit doesn't silently change what new instances look like.
+    # "$Latest" picks up template edits automatically.
     version = "$Latest"
   }
 
-  # Register instances into the ALB target group automatically.
-  target_group_arns = [var.target_group_arn]
+  # The ASG spread instances across subnets automatically. A single instance
+  # needs one chosen explicitly, so we take the first private subnet.
+  subnet_id = var.private_subnet_ids[0]
 
-  # "ELB" means the ASG trusts the load balancer's health check, not just
-  # "is the VM powered on." This is important: EC2's own check only notices
-  # a dead VM, not a hung Keycloak process. With ELB checks, a Keycloak that
-  # stops responding gets replaced.
-  health_check_type = "ELB"
+  tags = merge(var.tags, {
+    Name = "${var.name_prefix}-keycloak"
+  })
 
-  # Grace period before health checks start counting. Keycloak needs time to
-  # download, install, import the realm, and boot. Too short a value creates
-  # an infinite loop where instances are killed mid-startup, forever.
-  health_check_grace_period = var.health_check_grace_period
-
-  # Wait for instances to actually pass the ELB health check before
-  # considering the ASG "created." Without this, terraform apply finishes
-  # while the server is still booting and you get confusing 503s.
-  wait_for_capacity_timeout = var.wait_for_capacity_timeout
-
-  # --- Rolling replacement on template changes ---
-  # When the launch template changes, replace instances gradually instead of
-  # all at once, so there is no total outage.
-  instance_refresh {
-    strategy = "Rolling"
-
-    preferences {
-      # Keep at least this percentage healthy during the swap. With one
-      # instance, 50% still means a brief gap; with two or more it is smooth.
-      min_healthy_percentage = var.min_healthy_percentage
-
-      # instance_warmup expects a STRING of seconds, even though it is a
-      # number conceptually. tostring() converts our numeric variable so the
-      # provider does not reject it with a type error.
-      instance_warmup = tostring(var.health_check_grace_period)
-    }
-
-    # NOTE: no `triggers` argument here. A change to the launch template
-    # (including user_data, which is part of it) ALREADY starts an instance
-    # refresh by default. `triggers` is only for adding EXTRA things to watch
-    # that would not otherwise cause one, and it accepts launch template
-    # attribute names such as "launch_template" or "desired_capacity" — not
-    # arbitrary strings.
-  }
-
-  # ASG tags use a different, more verbose format than everywhere else.
-  # dynamic generates one tag block per entry in the tags map.
-  dynamic "tag" {
-    for_each = merge(var.tags, {
-      Name = "${var.name_prefix}-keycloak"
-    })
-
-    content {
-      key   = tag.key
-      value = tag.value
-      # propagate_at_launch copies the tag onto each new instance.
-      # Without it, the tag lives only on the ASG object itself.
-      propagate_at_launch = true
-    }
-  }
+  # Tag the root volume too. The ASG did this via tag_specifications; a plain
+  # instance needs it stated here or the volume comes out unnamed.
+  volume_tags = merge(var.tags, {
+    Name = "${var.name_prefix}-keycloak-root"
+  })
 
   lifecycle {
+    # Build the replacement BEFORE destroying the old one, so a template
+    # change does not leave you with nothing running while the new instance
+    # boots. Costs you a few minutes of double billing; worth it.
     create_before_destroy = true
 
-    # Ignore drift in desired_capacity so that a scaling policy adjusting it
-    # at 3am doesn't show up as a change Terraform wants to revert.
-    ignore_changes = [desired_capacity]
+    ignore_changes = [
+      # AWS periodically publishes new Amazon Linux AMIs. Without this, every
+      # plan would want to replace the instance just because a newer image
+      # exists. Replace deliberately by tainting instead:
+      #   terraform taint module.compute.aws_instance.keycloak
+      ami,
+    ]
   }
+}
+
+
+# -----------------------------------------------------------------------------
+# REGISTER THE INSTANCE WITH THE LOAD BALANCER
+# -----------------------------------------------------------------------------
+# The ASG did this automatically via target_group_arns. Without it, we attach
+# the instance to the target group ourselves.
+#
+# The ALB still health-checks it exactly as before. The difference is only
+# what happens when the check FAILS: the ALB stops sending traffic, but
+# nothing replaces the instance.
+resource "aws_lb_target_group_attachment" "keycloak" {
+  target_group_arn = var.target_group_arn
+  target_id        = aws_instance.keycloak.id
+
+  # The port the ALB forwards to on the instance.
+  port = var.keycloak_http_port
+}
+
+
+# -----------------------------------------------------------------------------
+# ALARM: TELL ME WHEN IT BREAKS
+# -----------------------------------------------------------------------------
+# With no ASG, nothing repairs a failed instance automatically. This alarm at
+# least makes the failure visible instead of silent.
+#
+# It watches the EC2 status check, which fails when the instance is
+# unreachable, has lost networking, or the underlying host has a problem.
+resource "aws_cloudwatch_metric_alarm" "instance_status" {
+  count = var.enable_status_alarm ? 1 : 0
+
+  alarm_name        = "${var.name_prefix}-keycloak-status-check-failed"
+  alarm_description = "Keycloak EC2 instance failed its status check. There is no ASG, so it will NOT self-heal - manual action required."
+
+  namespace   = "AWS/EC2"
+  metric_name = "StatusCheckFailed"
+
+  dimensions = {
+    InstanceId = aws_instance.keycloak.id
+  }
+
+  # Fire if the check fails for 2 consecutive minutes.
+  statistic           = "Maximum"
+  period              = 60
+  evaluation_periods  = 2
+  threshold           = 1
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+
+  # "breaching" means missing data counts as a failure. If the instance
+  # stops reporting entirely, that IS the problem, so we want an alarm.
+  treat_missing_data = "breaching"
+
+  # Optional SNS topic to notify. Empty means the alarm still shows red in
+  # the console but sends nothing.
+  alarm_actions = var.alarm_sns_topic_arns
+  ok_actions    = var.alarm_sns_topic_arns
+
+  tags = merge(var.tags, {
+    Name = "${var.name_prefix}-keycloak-status-alarm"
+  })
+}
+
+# --- Optional: auto-recover the instance ---
+# This is the closest thing to ASG self-healing without an ASG. EC2 auto
+# recovery restarts the instance ON NEW HARDWARE when the underlying host
+# fails, keeping the same instance ID, private IP, and EBS volumes.
+#
+# IMPORTANT LIMITATION: it only reacts to HARDWARE failure. It will NOT help
+# if Keycloak crashes or hangs while the instance itself is healthy. For that
+# you need either an ASG or a person.
+resource "aws_cloudwatch_metric_alarm" "auto_recover" {
+  count = var.enable_auto_recovery ? 1 : 0
+
+  alarm_name        = "${var.name_prefix}-keycloak-auto-recover"
+  alarm_description = "Recover the Keycloak instance when the underlying AWS host fails"
+
+  namespace   = "AWS/EC2"
+  # _System (not _Instance) means the problem is on AWS's side - lost power,
+  # network, or hardware. Those are the cases recovery can actually fix.
+  metric_name = "StatusCheckFailed_System"
+
+  dimensions = {
+    InstanceId = aws_instance.keycloak.id
+  }
+
+  statistic           = "Maximum"
+  period              = 60
+  evaluation_periods  = 2
+  threshold           = 1
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+
+  # This ARN format is a special EC2 action, not an SNS topic. It tells
+  # CloudWatch to issue a RecoverInstances call.
+  alarm_actions = ["arn:aws:automate:${data.aws_region.current.name}:ec2:recover"]
+
+  tags = merge(var.tags, {
+    Name = "${var.name_prefix}-keycloak-recovery-alarm"
+  })
 }
 
 

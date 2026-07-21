@@ -41,8 +41,8 @@ variable "use_rds" {
             replace it on any health check failure or template change.
             Use this only for throwaway testing.
   EOT
-  type        = bool
-  default     = true
+  type    = bool
+  default = true
 }
 
 # --- Certificate and DNS ---
@@ -115,24 +115,6 @@ variable "root_volume_size" {
   default     = 30
 }
 
-variable "min_size" {
-  description = "Minimum instances in the ASG"
-  type        = number
-  default     = 1
-}
-
-variable "max_size" {
-  description = "Maximum instances. Going above 1 requires RDS - H2 cannot be shared."
-  type        = number
-  default     = 1
-}
-
-variable "desired_capacity" {
-  description = "Instances to run right now"
-  type        = number
-  default     = 1
-}
-
 # --- Keycloak application ---
 
 variable "keycloak_version" {
@@ -176,8 +158,8 @@ variable "realm_file_path" {
     IF NO FILE IS FOUND, a working default realm is generated instead of
     failing. Check the realm_source output to confirm which was used.
   EOT
-  type        = string
-  default     = ""
+  type    = string
+  default = ""
 }
 
 variable "registration_allowed" {
@@ -218,46 +200,31 @@ variable "log_retention_days" {
   default     = 30
 }
 
+
 # =============================================================================
-# BOOT TIMING
+# FAILURE DETECTION
 # =============================================================================
-# These exist because the Auto Scaling Group can time out waiting for an
-# instance that is simply still installing. See the README troubleshooting
-# section "Error: waiting for Auto Scaling Group capacity satisfied".
+# No Auto Scaling Group means no automatic replacement of a failed instance.
 
-variable "wait_for_capacity_timeout" {
-  description = <<-EOT
-    How long `terraform apply` blocks waiting for the instance to pass its
-    ELB health check.
-
-    IS THE WAIT NEEDED? NO. It is purely a convenience.
-
-      "25m" - apply finishes only when Keycloak actually answers. A green
-              apply means it genuinely works.
-
-      "0"   - apply returns in seconds, as soon as the ASG object exists.
-              The instance still boots exactly the same way; Terraform just
-              stops watching. Check health yourself afterwards with:
-                aws elbv2 describe-target-health --target-group-arn <arn>
-
-    Setting "0" does NOT make anything less reliable. It only changes
-    whether Terraform waits around to confirm.
-  EOT
-  type        = string
-  default     = "25m"
+variable "enable_status_alarm" {
+  description = "CloudWatch alarm when the instance fails its status check. Tells you; does not fix."
+  type        = bool
+  default     = true
 }
 
-variable "health_check_grace_period" {
+variable "enable_auto_recovery" {
   description = <<-EOT
-    Seconds the ASG ignores health checks after launching an instance.
+    Restart the instance on new hardware when the AWS host fails. Keeps the
+    same instance ID, private IP, and volumes.
 
-    THIS ONE MATTERS. If it is shorter than the boot sequence, the ASG
-    decides a still-installing instance is broken, terminates it, and
-    launches a replacement that starts from zero - forever. That loop is
-    what produces "have 0 healthy instances" until Terraform gives up.
-
-    900s covers a slow boot with margin. Raise it, never lower it.
+    Only helps with HARDWARE failure. Does not help if Keycloak crashes.
   EOT
-  type        = number
-  default     = 900
+  type    = bool
+  default = true
+}
+
+variable "alarm_sns_topic_arns" {
+  description = "SNS topics to notify on alarm. Empty = alarm shows in console but notifies nobody."
+  type        = list(string)
+  default     = []
 }

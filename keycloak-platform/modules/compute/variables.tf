@@ -74,81 +74,6 @@ variable "root_volume_size" {
 
 # --- Auto Scaling Group sizing ---
 
-variable "min_size" {
-  description = "Fewest instances the ASG will keep running"
-  type        = number
-  default     = 1
-}
-
-variable "max_size" {
-  description = "Most instances the ASG may run"
-  type        = number
-  default     = 1
-}
-
-variable "desired_capacity" {
-  description = "How many instances to run right now"
-  type        = number
-  default     = 1
-}
-
-variable "health_check_grace_period" {
-  description = <<-EOT
-    Seconds to ignore ELB health checks after an instance launches.
-
-    THIS MUST BE LONGER THAN THE FULL BOOT SEQUENCE. If it is too short, the
-    ASG decides a still-installing instance is broken, terminates it, and
-    launches a replacement that starts from zero. That loops forever and
-    Terraform reports "have 0 healthy instances" until it times out.
-
-    Measured boot budget on t3.medium:
-      OS update + Java install    2-7 min   <- the big variable
-      Keycloak download           0.5-2 min
-      kc.sh build                 1-3 min
-      start + realm import        1-2 min
-      2 health checks to pass     0.5-1 min
-      -------------------------------------
-      total                       5-15 min
-
-    900s (15 min) covers the worst case with margin. The old 600s default
-    did not, which is why apply failed.
-  EOT
-  type    = number
-  default = 900
-}
-
-variable "wait_for_capacity_timeout" {
-  description = <<-EOT
-    How long `terraform apply` blocks waiting for instances to pass their
-    ELB health check.
-
-    IS THIS WAIT NEEDED? No - it is purely a convenience.
-
-      "25m" (default) - apply finishes only once Keycloak actually answers.
-                        Slower, but a green apply means it genuinely works.
-
-      "0"             - apply returns as soon as the ASG object is created,
-                        typically in seconds. The instance still boots
-                        normally in the background; Terraform just stops
-                        watching. Nothing is built differently.
-
-    Set "0" if you want fast applies and will check health yourself:
-      aws elbv2 describe-target-health --target-group-arn <arn>
-
-    IMPORTANT: this value must exceed health_check_grace_period plus the
-    time for health checks to pass, or you will time out waiting for an
-    instance that was always going to succeed.
-  EOT
-  type    = string
-  default = "25m"
-}
-
-variable "min_healthy_percentage" {
-  description = "Percent of instances that must stay healthy during a rolling refresh"
-  type        = number
-  default     = 50
-}
-
 # --- Keycloak application settings ---
 
 variable "keycloak_version" {
@@ -362,4 +287,50 @@ variable "db_name" {
   description = "Database name from project 02"
   type        = string
   default     = "keycloak"
+}
+
+# =============================================================================
+# FAILURE DETECTION (replaces ASG self-healing)
+# =============================================================================
+# With no Auto Scaling Group, nothing repairs a failed instance automatically.
+# These settings make failures visible, and recover from hardware faults.
+
+variable "enable_status_alarm" {
+  description = <<-EOT
+    Create a CloudWatch alarm that fires when the instance fails its status
+    check.
+
+    This does NOT fix anything - it tells you. Without an ASG, a crashed
+    instance stays crashed until someone acts, so being told promptly is the
+    whole point.
+  EOT
+  type    = bool
+  default = true
+}
+
+variable "enable_auto_recovery" {
+  description = <<-EOT
+    Automatically restart the instance on new hardware when the underlying
+    AWS host fails. Keeps the same instance ID, private IP, and EBS volumes.
+
+    This is the closest thing to ASG self-healing without an ASG.
+
+    IMPORTANT LIMITATION: it reacts only to HARDWARE failure (lost power,
+    network, or host). It will NOT help if Keycloak itself crashes or hangs
+    while the instance stays up. For that you need an ASG or a person.
+  EOT
+  type    = bool
+  default = true
+}
+
+variable "alarm_sns_topic_arns" {
+  description = <<-EOT
+    SNS topics to notify when the status alarm fires, e.g. an email or
+    PagerDuty subscription.
+
+    Empty means the alarm still turns red in the CloudWatch console but
+    sends nothing. Create a topic and subscribe to it to actually be told.
+  EOT
+  type    = list(string)
+  default = []
 }

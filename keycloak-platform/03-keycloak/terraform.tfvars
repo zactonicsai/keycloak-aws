@@ -46,9 +46,6 @@ instance_type    = "t3.medium"
 java_heap_size   = "1536m"
 root_volume_size = 30
 
-min_size         = 1
-max_size         = 1
-desired_capacity = 1
 
 # =============================================================================
 # KEYCLOAK
@@ -88,19 +85,21 @@ default_client_web_origins = [
 enable_cloudwatch_agent = true
 log_retention_days      = 30
 
-# =============================================================================
-# BOOT TIMING
-# =============================================================================
-# The ASG ignores health checks for this long after launch. MUST be longer
-# than the full install or the ASG terminates instances mid-boot in a loop.
-# Measured boot is 4.5-12 min; 900s gives margin.
-health_check_grace_period = 900
 
-# How long `terraform apply` waits for the instance to go healthy.
-#
-# "25m" = apply confirms Keycloak actually works before returning.
-# "0"   = apply returns in seconds; the instance still boots normally,
-#         Terraform just does not wait. Nothing is built differently.
-#
-# Set "0" if you prefer fast applies and will check health yourself.
-wait_for_capacity_timeout = "25m"
+# =============================================================================
+# FAILURE DETECTION
+# =============================================================================
+# There is no Auto Scaling Group, so a crashed instance stays crashed until
+# someone acts. These make that visible.
+
+# Alarm when the instance fails its EC2 status check.
+enable_status_alarm = true
+
+# Restart on new hardware if the underlying AWS host fails. Keeps the same
+# instance ID, private IP, and volumes. Does NOT help if Keycloak itself
+# crashes while the instance stays up.
+enable_auto_recovery = true
+
+# SNS topics to notify. Empty means the alarm turns red in the console but
+# tells nobody. Add a topic ARN to actually get emailed.
+alarm_sns_topic_arns = []

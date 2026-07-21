@@ -2,9 +2,19 @@
 # COMPUTE MODULE - outputs.tf
 # =============================================================================
 
-output "autoscaling_group_name" {
-  description = "Name of the ASG managing the Keycloak instances"
-  value       = aws_autoscaling_group.keycloak.name
+output "instance_id" {
+  description = "EC2 instance ID. Use this for SSM sessions and troubleshooting."
+  value       = aws_instance.keycloak.id
+}
+
+output "instance_private_ip" {
+  description = "Private IP of the instance. Not reachable from the internet."
+  value       = aws_instance.keycloak.private_ip
+}
+
+output "instance_availability_zone" {
+  description = "Which AZ the instance landed in"
+  value       = aws_instance.keycloak.availability_zone
 }
 
 output "launch_template_id" {

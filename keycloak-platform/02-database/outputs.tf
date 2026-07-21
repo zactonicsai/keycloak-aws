@@ -45,7 +45,7 @@ output "db_secret_arn" {
     boot script fetches the password from it. The password itself never
     travels through Terraform state.
   EOT
-  value       = module.database.db_secret_arn
+  value = module.database.db_secret_arn
 }
 
 output "db_secret_name" {
