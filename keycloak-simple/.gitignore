@@ -1,0 +1,14 @@
+# STATE FILES - contain the admin password in PLAINTEXT. Never commit.
+*.tfstate
+*.tfstate.*
+.terraform/
+*.tfplan
+crash.log
+
+# Realm exports may contain user data
+realms/*-realm.json
+!realms/*.example
+
+*.pem
+*.key
+.DS_Store

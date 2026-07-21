@@ -1,0 +1,180 @@
+{
+  "_comment_top": "EXAMPLE REALM FILE. Rename to myrealm-realm.json to make Terraform use it. If no matching file exists, the compute module generates a default realm instead and the apply still succeeds.",
+
+  "realm": "myrealm",
+  "id": "myrealm",
+  "displayName": "My Example Realm",
+
+  "_comment_enabled": "enabled=false makes the realm exist but reject every login.",
+  "enabled": true,
+
+  "_comment_login": "Login page behavior.",
+  "registrationAllowed": false,
+  "registrationEmailAsUsername": false,
+  "resetPasswordAllowed": true,
+  "rememberMe": true,
+  "verifyEmail": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "editUsernameAllowed": false,
+
+  "_comment_tokens": "All lifetimes are in SECONDS. Short access tokens limit the damage if one is stolen.",
+  "accessTokenLifespan": 300,
+  "accessTokenLifespanForImplicitFlow": 900,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "offlineSessionIdleTimeout": 2592000,
+  "accessCodeLifespan": 60,
+  "accessCodeLifespanUserAction": 300,
+  "actionTokenGeneratedByUserLifespan": 300,
+
+  "_comment_bruteforce": "Locks an account after repeated failed logins. OFF by default in Keycloak, which surprises people. Turn it on.",
+  "bruteForceProtected": true,
+  "permanentLockout": false,
+  "maxFailureWaitSeconds": 900,
+  "minimumQuickLoginWaitSeconds": 60,
+  "waitIncrementSeconds": 60,
+  "quickLoginCheckMilliSeconds": 1000,
+  "maxDeltaTimeSeconds": 43200,
+  "failureFactor": 5,
+
+  "_comment_password": "Minimum 12 chars, mixed case, a digit, a symbol, cannot contain the username, and remembers the last 3 to stop cycling.",
+  "passwordPolicy": "length(12) and upperCase(1) and lowerCase(1) and digits(1) and specialChars(1) and notUsername and passwordHistory(3)",
+
+  "_comment_ssl": "external means HTTPS is required for external clients but not for localhost. Correct when sitting behind an ALB.",
+  "sslRequired": "external",
+
+  "_comment_roles": "A role is a label granting permission. Applications check for these names.",
+  "roles": {
+    "realm": [
+      {
+        "name": "user",
+        "description": "Standard user with basic access",
+        "composite": false
+      },
+      {
+        "name": "admin",
+        "description": "Administrator with elevated access",
+        "composite": false
+      },
+      {
+        "name": "viewer",
+        "description": "Read-only access",
+        "composite": false
+      }
+    ]
+  },
+
+  "_comment_defaultrole": "Roles automatically granted to every new user.",
+  "defaultRoles": ["user", "offline_access", "uma_authorization"],
+
+  "_comment_groups": "Groups bundle roles together. Put a user in a group and they inherit all its roles at once.",
+  "groups": [
+    {
+      "name": "employees",
+      "path": "/employees",
+      "realmRoles": ["user"]
+    },
+    {
+      "name": "administrators",
+      "path": "/administrators",
+      "realmRoles": ["user", "admin"]
+    }
+  ],
+
+  "_comment_clients": "A client is an application that asks Keycloak to log people in.",
+  "clients": [
+    {
+      "clientId": "myrealm-web",
+      "name": "Web Application (public)",
+      "description": "Browser app that cannot keep a secret, so it uses PKCE",
+      "enabled": true,
+
+      "_comment_public": "publicClient=true for browser JS and mobile apps. They cannot hide a client secret, so they must use PKCE instead.",
+      "publicClient": true,
+
+      "_comment_flows": "Standard flow is the OAuth2 Authorization Code flow. directAccessGrants sends the raw password to the app and is deprecated.",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+
+      "_comment_redirect": "SECURITY CRITICAL. Never use a bare * here. An open redirect lets an attacker steal authorization codes.",
+      "redirectUris": [
+        "http://localhost:3000/*",
+        "http://localhost:8080/*"
+      ],
+      "webOrigins": [
+        "http://localhost:3000",
+        "http://localhost:8080"
+      ],
+
+      "attributes": {
+        "_comment_pkce": "S256 requires PKCE, which stops an intercepted authorization code from being redeemed by anyone else.",
+        "pkce.code.challenge.method": "S256"
+      },
+
+      "protocol": "openid-connect",
+      "fullScopeAllowed": false
+    },
+    {
+      "clientId": "myrealm-backend",
+      "name": "Backend Service (confidential)",
+      "description": "Server-side app that CAN hold a secret",
+      "enabled": true,
+
+      "_comment_confidential": "publicClient=false means Keycloak issues a client secret. Only safe for server-side code, never for a browser.",
+      "publicClient": false,
+
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+
+      "_comment_serviceaccount": "Lets the app authenticate as ITSELF (client credentials grant) rather than on behalf of a user. Good for background jobs.",
+      "serviceAccountsEnabled": true,
+
+      "protocol": "openid-connect",
+      "fullScopeAllowed": false
+    }
+  ],
+
+  "_comment_users": "Seed accounts. Real users normally arrive via self-registration or a federated directory.",
+  "users": [
+    {
+      "username": "testuser",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "testuser@example.com",
+      "firstName": "Test",
+      "lastName": "User",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "ChangeMe123!",
+          "_comment_temporary": "temporary=true forces a password change at first login. Always true for a seeded account.",
+          "temporary": true
+        }
+      ],
+      "realmRoles": ["user"],
+      "groups": ["/employees"]
+    }
+  ],
+
+  "_comment_smtp": "Email settings. Needed for password resets and email verification. Fill in real values before turning verifyEmail on.",
+  "smtpServer": {},
+
+  "_comment_events": "Audit logging. Login events are kept 7 days; admin events keep the full request body for forensics.",
+  "eventsEnabled": true,
+  "eventsExpiration": 604800,
+  "adminEventsEnabled": true,
+  "adminEventsDetailsEnabled": true,
+
+  "_comment_theme": "Leave empty for the built-in theme, or name a custom one you have installed.",
+  "loginTheme": "",
+  "accountTheme": "",
+  "adminTheme": "",
+  "emailTheme": "",
+
+  "internationalizationEnabled": false,
+  "supportedLocales": ["en"],
+  "defaultLocale": "en"
+}
